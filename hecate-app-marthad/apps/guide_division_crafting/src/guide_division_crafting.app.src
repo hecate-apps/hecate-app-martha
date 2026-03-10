@@ -1,0 +1,11 @@
+{application, guide_division_crafting, [
+    {description, "Division crafting command service"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {mod, {guide_division_crafting_app, []}},
+    {applications, [kernel, stdlib, crypto, evoq]},
+    {env, []},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, [{"GitHub", "https://github.com/hecate-social/hecate-app-martha"}]}
+]}.

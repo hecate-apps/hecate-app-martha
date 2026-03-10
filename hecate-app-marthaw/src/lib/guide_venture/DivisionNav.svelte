@@ -7,11 +7,11 @@
 		phaseStatusClass,
 		phaseStatus,
 		hasFlag,
-		PHASE_ACTIVE,
-		PHASE_COMPLETED,
-		PHASE_PAUSED
+		PHASE_OPEN,
+		PHASE_CONCLUDED,
+		PHASE_SHELVED
 	} from '$lib/types.js';
-	import type { Division, PhaseCode } from '$lib/types.js';
+	import type { PhaseCode } from '$lib/types.js';
 
 	function selectDivision(divId: string) {
 		selectedDivisionId.set(divId);
@@ -23,9 +23,9 @@
 	}
 
 	function phaseIcon(status: number): string {
-		if (hasFlag(status, PHASE_COMPLETED)) return '\u{25CF}';
-		if (hasFlag(status, PHASE_ACTIVE)) return '\u{25D0}';
-		if (hasFlag(status, PHASE_PAUSED)) return '\u{25CB}';
+		if (hasFlag(status, PHASE_CONCLUDED)) return '\u{25CF}';
+		if (hasFlag(status, PHASE_OPEN)) return '\u{25D0}';
+		if (hasFlag(status, PHASE_SHELVED)) return '\u{25CB}';
 		return '\u{25CB}';
 	}
 </script>

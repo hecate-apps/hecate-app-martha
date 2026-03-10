@@ -1,7 +1,7 @@
-%%% @doc Path utilities for hecate-app-marthad.
+%%% @doc Path utilities for hecate-app-martha.
 %%%
 %%% Provides purpose-specific path functions for the namespaced
-%%% directory layout under ~/.hecate/hecate-app-marthad/:
+%%% directory layout under the plugin data directory:
 %%%
 %%%   sqlite/       - SQLite read-model databases
 %%%   reckon-db/    - ReckonDB (Khepri/Ra) event store data
@@ -9,9 +9,10 @@
 %%%   run/          - PID and state files
 %%%   connectors/   - Connector socket files
 %%%
-%%% The base directory is configured via
-%%% {hecate_app_marthad, [{data_dir, Path}]}.
-%%% Default: ~/.hecate/hecate-app-marthad
+%%% In-VM mode: data_dir is provided by hecate_plugin_loader via
+%%% persistent_term:get(app_martha_config).
+%%% Standalone mode: configured via application env or defaults to
+%%% ~/.hecate/hecate-app-martha.
 %%% @end
 -module(app_marthad_paths).
 
@@ -31,9 +32,14 @@
 
 -spec base_dir() -> file:filename().
 base_dir() ->
-    case application:get_env(hecate_app_marthad, data_dir) of
-        {ok, Dir} -> expand_path(Dir);
-        undefined -> expand_path("~/.hecate/hecate-app-marthad")
+    %% In-VM mode: plugin loader sets data_dir via persistent_term
+    case persistent_term:get(app_martha_config, undefined) of
+        #{data_dir := Dir} -> Dir;
+        _ ->
+            case application:get_env(hecate_app_marthad, data_dir) of
+                {ok, Dir} -> expand_path(Dir);
+                undefined -> expand_path("~/.hecate/hecate-app-martha")
+            end
     end.
 
 -spec sqlite_dir() -> file:filename().

@@ -1,7 +1,7 @@
 {application, hecate_app_marthad, [
-    {description, "Hecate Martha - ALC/DevOps Agent Daemon"},
-    {vsn, "0.1.0"},
-    {registered, [hecate_app_marthad_sup]},
+    {description, "Hecate Martha - ALC/DevOps Agent Plugin"},
+    {vsn, "0.2.0"},
+    {registered, [app_martha_sup]},
     {mod, {hecate_app_marthad_app, []}},
     {applications, [
         kernel,
@@ -14,10 +14,11 @@
         reckon_db,
         evoq,
         reckon_evoq,
-        esqlite
+        esqlite,
+        hecate_sdk
     ]},
     {env, [
-        {data_dir, "~/.hecate/hecate-app-marthad"},
+        {data_dir, "~/.hecate/hecate-app-martha"},
         {api_socket_name, "api.sock"}
     ]},
     {modules, []},

@@ -2,7 +2,9 @@
 set -euo pipefail
 
 # Bump version across all Martha artifacts:
+#   - manifest.json
 #   - hecate-app-marthad/src/hecate_app_marthad.app.src
+#   - hecate-app-marthad/src/app_martha.erl (manifest/0)
 #   - hecate-app-marthad/rebar.config (relx release)
 #   - hecate-app-marthaw/package.json
 
@@ -25,17 +27,27 @@ fi
 
 echo "Bumping to version $NEW_VERSION"
 
-# 1. app.src — {vsn, "X.Y.Z"}
+# 1. manifest.json
+MANIFEST="$REPO_ROOT/manifest.json"
+sed -i "s/\"version\": \"[0-9]*\.[0-9]*\.[0-9]*\"/\"version\": \"$NEW_VERSION\"/" "$MANIFEST"
+echo "  Updated $MANIFEST"
+
+# 2. app.src — {vsn, "X.Y.Z"}
 APP_SRC="$REPO_ROOT/hecate-app-marthad/src/hecate_app_marthad.app.src"
 sed -i "s/{vsn, \"[0-9]*\.[0-9]*\.[0-9]*\"}/{vsn, \"$NEW_VERSION\"}/" "$APP_SRC"
 echo "  Updated $APP_SRC"
 
-# 2. rebar.config — {release, {hecate_app_marthad, "X.Y.Z"}
+# 3. app_martha.erl — version => <<"X.Y.Z">>
+APP_MARTHA="$REPO_ROOT/hecate-app-marthad/src/app_martha.erl"
+sed -i "s/version => <<\"[0-9]*\.[0-9]*\.[0-9]*\">>/version => <<\"$NEW_VERSION\">>/" "$APP_MARTHA"
+echo "  Updated $APP_MARTHA"
+
+# 4. rebar.config — {release, {hecate_app_marthad, "X.Y.Z"}
 REBAR_CONFIG="$REPO_ROOT/hecate-app-marthad/rebar.config"
 sed -i "s/{release, {hecate_app_marthad, \"[0-9]*\.[0-9]*\.[0-9]*\"}/{release, {hecate_app_marthad, \"$NEW_VERSION\"}/" "$REBAR_CONFIG"
 echo "  Updated $REBAR_CONFIG"
 
-# 3. package.json — "version": "X.Y.Z"
+# 5. package.json — "version": "X.Y.Z"
 PACKAGE_JSON="$REPO_ROOT/hecate-app-marthaw/package.json"
 sed -i "s/\"version\": \"[0-9]*\.[0-9]*\.[0-9]*\"/\"version\": \"$NEW_VERSION\"/" "$PACKAGE_JSON"
 echo "  Updated $PACKAGE_JSON"

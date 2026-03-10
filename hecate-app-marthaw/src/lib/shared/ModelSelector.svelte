@@ -101,7 +101,7 @@
 		{#if currentModel}
 			<span class="truncate">{shortName(currentModel)}</span>
 			{#if modelAffinity(currentModel) === 'code'}
-				<span class="text-[8px] text-phase-tni">{'\u{2022}'}</span>
+				<span class="text-[8px] text-hecate-400">{'\u{2022}'}</span>
 			{/if}
 		{:else}
 			<span class="text-surface-500">Select model</span>
@@ -133,7 +133,7 @@
 					<span class="text-[9px] text-surface-400">
 						Phase: <span class="text-surface-200">{phaseName}</span>
 						{#if phaseAffinity === 'code'}
-							<span class="text-phase-tni ml-1">(code-optimized)</span>
+							<span class="text-hecate-400 ml-1">(code-optimized)</span>
 						{/if}
 					</span>
 					{#if phasePreference}
@@ -176,7 +176,7 @@
 							>
 								<span class="truncate flex-1">{name}</span>
 								{#if modelAffinity(name) === 'code'}
-									<span class="text-[8px] text-phase-tni shrink-0" title="Code model">{'\u{2022}'} code</span>
+									<span class="text-[8px] text-hecate-400 shrink-0" title="Code model">{'\u{2022}'} code</span>
 								{/if}
 								{#if isPinned}
 									<span class="text-[8px] text-hecate-400 shrink-0" title="Pinned for this phase">{'\u{1F4CC}'}</span>

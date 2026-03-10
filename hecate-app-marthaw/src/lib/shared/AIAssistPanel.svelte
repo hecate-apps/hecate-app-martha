@@ -303,7 +303,7 @@
 						{#if $aiModel}
 							<span class="text-hecate-400">{$aiModel}</span>
 							{#if currentAffinity === 'code'}
-								<span class="text-[9px] text-phase-tni ml-1"
+								<span class="text-[9px] text-hecate-400 ml-1"
 									>(code-optimized)</span
 								>
 							{/if}

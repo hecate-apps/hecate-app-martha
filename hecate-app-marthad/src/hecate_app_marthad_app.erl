@@ -1,10 +1,14 @@
 %%% @doc Hecate Martha daemon application.
 %%%
-%%% On startup:
+%%% Standalone mode startup:
 %%% 1. Ensures the namespace directory layout exists
 %%% 2. Starts ReckonDB infrastructure and martha_store
 %%% 3. Starts Cowboy on a Unix domain socket
-%%% 4. Registers with hecate-daemon (when available)
+%%% 4. Starts domain supervisors via app_martha_sup
+%%%
+%%% In-VM mode: hecate_plugin_loader calls app_martha:init/1 instead.
+%%% The store is created by the loader, and routes are mounted by the
+%%% daemon's cowboy instance.
 %%% @end
 -module(hecate_app_marthad_app).
 -behaviour(application).
@@ -23,7 +27,7 @@ start(_StartType, _StartArgs) ->
     ok = start_cowboy(),
     logger:info("[hecate_app_marthad] Started, socket at ~s",
                 [app_marthad_paths:socket_path("api.sock")]),
-    hecate_app_marthad_sup:start_link().
+    app_martha_sup:start_link().
 
 stop(_State) ->
     ok = cowboy:stop_listener(app_marthad_http),
@@ -68,8 +72,6 @@ start_cowboy() ->
     cleanup_socket_file(SocketPath),
     StaticDir = static_dir(),
     CoreRoutes = [
-        {"/health", app_marthad_health_api, []},
-        {"/manifest", app_marthad_manifest_api, []},
         {"/ui/[...]", cowboy_static, {dir, StaticDir, [{mimetypes, cow_mimetypes, all}]}}
     ],
     ApiRoutes = app_marthad_api_routes:discover_routes(),

@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { selectedDivision } from '$lib/guide_venture/guide_venture.js';
-	import { selectedPhase, startPhase, pausePhase, resumePhase, completePhase, isLoading } from '$lib/shared/phaseStore.js';
+	import { selectedPhase, openPhase, shelvePhase, resumePhase, concludePhase, isLoading } from '$lib/shared/phaseStore.js';
 	import { PHASES, openAIAssist } from '$lib/shared/aiStore.js';
 	import {
 		phaseStatus,
 		hasFlag,
-		PHASE_ACTIVE,
-		PHASE_COMPLETED,
-		PHASE_PAUSED,
+		PHASE_OPEN,
+		PHASE_CONCLUDED,
+		PHASE_SHELVED,
+		PHASE_INITIATED,
 		type PhaseCode
 	} from '$lib/types.js';
 
@@ -22,14 +23,10 @@
 	function phaseColor(code: PhaseCode, isActive: boolean): string {
 		if (!isActive) return '';
 		switch (code) {
-			case 'dna':
-				return 'border-phase-dna text-phase-dna';
-			case 'anp':
-				return 'border-phase-anp text-phase-anp';
-			case 'tni':
-				return 'border-phase-tni text-phase-tni';
-			case 'dno':
-				return 'border-phase-dno text-phase-dno';
+			case 'planning':
+				return 'border-phase-planning text-phase-planning';
+			case 'crafting':
+				return 'border-phase-crafting text-phase-crafting';
 		}
 	}
 
@@ -39,17 +36,17 @@
 		const phase = $selectedPhase;
 
 		switch (action) {
-			case 'start':
-				await startPhase(divId, phase);
+			case 'open':
+				await openPhase(divId, phase);
 				break;
-			case 'pause':
-				await pausePhase(divId, phase);
+			case 'shelve':
+				await shelvePhase(divId, phase);
 				break;
 			case 'resume':
 				await resumePhase(divId, phase);
 				break;
-			case 'complete':
-				await completePhase(divId, phase);
+			case 'conclude':
+				await concludePhase(divId, phase);
 				break;
 		}
 	}
@@ -62,11 +59,11 @@
 			{#each PHASES as phase, i}
 				{@const ps = phaseStatus($selectedDivision, phase.code)}
 				{@const isActive = $selectedPhase === phase.code}
-				{@const isCompleted = hasFlag(ps, PHASE_COMPLETED)}
+				{@const isConcluded = hasFlag(ps, PHASE_CONCLUDED)}
 
 				{#if i > 0}
 					<div
-						class="w-4 h-px {isCompleted ? 'bg-health-ok/40' : 'bg-surface-600'}"
+						class="w-4 h-px {isConcluded ? 'bg-health-ok/40' : 'bg-surface-600'}"
 					></div>
 				{/if}
 
@@ -78,14 +75,16 @@
 						? `bg-surface-700 border-current ${phaseColor(phase.code, true)}`
 						: 'border-transparent text-surface-400 hover:text-surface-200 hover:bg-surface-700/50'}"
 				>
-					{#if isCompleted}
+					{#if isConcluded}
 						<span class="text-health-ok text-[10px]">{'\u{2713}'}</span>
-					{:else if hasFlag(ps, PHASE_ACTIVE)}
+					{:else if hasFlag(ps, PHASE_OPEN)}
 						<span class="text-hecate-400 text-[10px] animate-pulse"
 							>{'\u{25CF}'}</span
 						>
-					{:else if hasFlag(ps, PHASE_PAUSED)}
+					{:else if hasFlag(ps, PHASE_SHELVED)}
 						<span class="text-health-warn text-[10px]">{'\u{25D0}'}</span>
+					{:else if hasFlag(ps, PHASE_INITIATED)}
+						<span class="text-surface-300 text-[10px]">{'\u{25CB}'}</span>
 					{:else}
 						<span class="text-surface-500 text-[10px]">{'\u{25CB}'}</span>
 					{/if}
@@ -101,33 +100,36 @@
 			</span>
 
 			<!-- Phase lifecycle buttons -->
-			{#if !hasFlag(currentPhaseStatus, PHASE_ACTIVE) && !hasFlag(currentPhaseStatus, PHASE_COMPLETED) && !hasFlag(currentPhaseStatus, PHASE_PAUSED)}
+			{#if hasFlag(currentPhaseStatus, PHASE_INITIATED) && !hasFlag(currentPhaseStatus, PHASE_OPEN) && !hasFlag(currentPhaseStatus, PHASE_CONCLUDED) && !hasFlag(currentPhaseStatus, PHASE_SHELVED)}
 				<button
-					onclick={() => handlePhaseAction('start')}
+					onclick={() => handlePhaseAction('open')}
 					disabled={$isLoading}
 					class="text-[10px] px-2 py-0.5 rounded bg-hecate-600/20 text-hecate-300
 						hover:bg-hecate-600/30 transition-colors disabled:opacity-50"
 				>
-					Start Phase
+					Open
 				</button>
-			{:else if hasFlag(currentPhaseStatus, PHASE_ACTIVE)}
+			{:else if !hasFlag(currentPhaseStatus, PHASE_INITIATED) && !hasFlag(currentPhaseStatus, PHASE_OPEN) && !hasFlag(currentPhaseStatus, PHASE_CONCLUDED)}
+				<!-- Not yet initiated — pending -->
+				<span class="text-[10px] text-surface-500 mr-1">Pending</span>
+			{:else if hasFlag(currentPhaseStatus, PHASE_OPEN)}
 				<button
-					onclick={() => handlePhaseAction('pause')}
+					onclick={() => handlePhaseAction('shelve')}
 					disabled={$isLoading}
 					class="text-[10px] px-2 py-0.5 rounded text-surface-400
 						hover:text-health-warn hover:bg-surface-700 transition-colors disabled:opacity-50"
 				>
-					Pause
+					Shelve
 				</button>
 				<button
-					onclick={() => handlePhaseAction('complete')}
+					onclick={() => handlePhaseAction('conclude')}
 					disabled={$isLoading}
 					class="text-[10px] px-2 py-0.5 rounded text-surface-400
 						hover:text-health-ok hover:bg-surface-700 transition-colors disabled:opacity-50"
 				>
-					Complete
+					Conclude
 				</button>
-			{:else if hasFlag(currentPhaseStatus, PHASE_PAUSED)}
+			{:else if hasFlag(currentPhaseStatus, PHASE_SHELVED)}
 				<button
 					onclick={() => handlePhaseAction('resume')}
 					disabled={$isLoading}

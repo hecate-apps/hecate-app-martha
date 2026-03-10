@@ -36,10 +36,8 @@ export interface Division {
 	description: string;
 	status: number;
 	phase: string;
-	dna_status: number;
-	anp_status: number;
-	tni_status: number;
-	dno_status: number;
+	planning_status: number;
+	crafting_status: number;
 	created_at: string;
 	updated_at: string;
 }
@@ -155,12 +153,14 @@ export const VL_DISCOVERING = 1;
 export const VL_DISCOVERY_PAUSED = 2;
 export const VL_ARCHIVED = 4;
 
-/** Phase status bit flags (match Erlang evoq_bit_flags) */
-export const PHASE_ACTIVE = 1;
-export const PHASE_PAUSED = 2;
-export const PHASE_COMPLETED = 4;
+/** Phase status bit flags (match Erlang planning_status.hrl / crafting_status.hrl) */
+export const PHASE_INITIATED = 1;
+export const PHASE_ARCHIVED = 2;
+export const PHASE_OPEN = 4;
+export const PHASE_SHELVED = 8;
+export const PHASE_CONCLUDED = 16;
 
-export type PhaseCode = 'dna' | 'anp' | 'tni' | 'dno';
+export type PhaseCode = 'planning' | 'crafting';
 
 export function hasFlag(status: number, flag: number): boolean {
 	return (status & flag) !== 0;
@@ -168,29 +168,29 @@ export function hasFlag(status: number, flag: number): boolean {
 
 export function phaseStatus(division: Division, phase: PhaseCode): number {
 	switch (phase) {
-		case 'dna':
-			return division.dna_status ?? 0;
-		case 'anp':
-			return division.anp_status ?? 0;
-		case 'tni':
-			return division.tni_status ?? 0;
-		case 'dno':
-			return division.dno_status ?? 0;
+		case 'planning':
+			return division.planning_status ?? 0;
+		case 'crafting':
+			return division.crafting_status ?? 0;
 	}
 }
 
 export function phaseLabel(division: Division | number, phase?: PhaseCode): string {
 	const s = typeof division === 'number' ? division : phaseStatus(division, phase!);
-	if (hasFlag(s, PHASE_COMPLETED)) return 'Completed';
-	if (hasFlag(s, PHASE_PAUSED)) return 'Paused';
-	if (hasFlag(s, PHASE_ACTIVE)) return 'Active';
+	if (hasFlag(s, PHASE_CONCLUDED)) return 'Concluded';
+	if (hasFlag(s, PHASE_SHELVED)) return 'Shelved';
+	if (hasFlag(s, PHASE_OPEN)) return 'Open';
+	if (hasFlag(s, PHASE_ARCHIVED)) return 'Archived';
+	if (hasFlag(s, PHASE_INITIATED)) return 'Initiated';
 	return 'Pending';
 }
 
 export function phaseStatusClass(status: number): string {
-	if (hasFlag(status, PHASE_COMPLETED)) return 'text-health-ok';
-	if (hasFlag(status, PHASE_ACTIVE)) return 'text-hecate-400';
-	if (hasFlag(status, PHASE_PAUSED)) return 'text-health-warn';
+	if (hasFlag(status, PHASE_CONCLUDED)) return 'text-health-ok';
+	if (hasFlag(status, PHASE_OPEN)) return 'text-hecate-400';
+	if (hasFlag(status, PHASE_SHELVED)) return 'text-health-warn';
+	if (hasFlag(status, PHASE_ARCHIVED)) return 'text-surface-500';
+	if (hasFlag(status, PHASE_INITIATED)) return 'text-surface-300';
 	return 'text-surface-500';
 }
 

@@ -1,0 +1,15 @@
+{application, query_ventures, [
+    {description, "Venture lifecycle queries"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {mod, {query_ventures_app, []}},
+    {applications, [
+        kernel,
+        stdlib,
+        project_ventures
+    ]},
+    {env, []},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, [{"GitHub", "https://github.com/hecate-social/hecate-app-martha"}]}
+]}.

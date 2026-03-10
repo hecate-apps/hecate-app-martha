@@ -1,15 +1,10 @@
-%%% @doc Mesh publish proxy for Martha daemon.
+%%% @doc Mesh publish proxy for Martha.
 %%%
-%%% Martha runs as a separate BEAM node and does not have direct
-%%% access to the Macula mesh client (which lives in hecate-daemon).
+%%% In-VM mode: publishes directly via hecate_mesh (same BEAM VM).
+%%% Standalone mode: routes via OTP pg process groups to hecate-daemon.
 %%%
-%%% This module routes mesh publish requests to hecate-daemon via
-%%% OTP pg process groups. The hecate-daemon registers a handler in
-%%% the pg group 'martha_mesh_bridge' that forwards to
-%%% hecate_mesh_client:publish/2.
-%%%
-%%% If hecate-daemon is not connected, publishes are silently dropped
-%%% with a warning log.
+%%% The module auto-detects the mode by checking if hecate_mesh is
+%%% loaded and exported.
 %%% @end
 -module(app_marthad_mesh_proxy).
 
@@ -18,12 +13,30 @@
 -define(PG_SCOPE, hecate_app_marthad).
 -define(PG_GROUP, martha_mesh_bridge).
 
-%% @doc Publish a message to the Macula mesh via hecate-daemon bridge.
-%%
-%% Returns ok if at least one bridge member received the message,
-%% or {error, not_connected} if no bridge members exist.
 -spec publish(Topic :: binary(), Payload :: map()) -> ok | {error, not_connected}.
 publish(Topic, Payload) ->
+    case try_hecate_mesh(Topic, Payload) of
+        ok -> ok;
+        unavailable -> publish_via_pg(Topic, Payload)
+    end.
+
+%%% Internal
+
+try_hecate_mesh(Topic, Payload) ->
+    case code:ensure_loaded(hecate_mesh) of
+        {module, hecate_mesh} ->
+            case erlang:function_exported(hecate_mesh, publish, 2) of
+                true ->
+                    hecate_mesh:publish(Topic, Payload),
+                    ok;
+                false ->
+                    unavailable
+            end;
+        _ ->
+            unavailable
+    end.
+
+publish_via_pg(Topic, Payload) ->
     Members = get_bridge_members(),
     case Members of
         [] ->
@@ -35,8 +48,6 @@ publish(Topic, Payload) ->
             lists:foreach(fun(Pid) -> Pid ! Msg end, Members),
             ok
     end.
-
-%%% Internal
 
 get_bridge_members() ->
     try pg:get_members(?PG_SCOPE, ?PG_GROUP) of

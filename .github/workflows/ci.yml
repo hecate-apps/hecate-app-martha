@@ -23,14 +23,8 @@ jobs:
           cache-dependency-path: hecate-app-marthaw/package-lock.json
 
       - run: npm ci
-      - run: npm run check
+      - run: npx svelte-kit sync && npx svelte-check --tsconfig ./tsconfig.json
       - run: npm run build:lib
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: hecate-app-marthaw/dist/
-          retention-days: 1
 
   daemon:
     name: Daemon (compile + test)
@@ -58,32 +52,3 @@ jobs:
       - run: rebar3 compile
       - run: rebar3 eunit
       - run: rebar3 dialyzer
-
-  release:
-    name: Build release
-    needs: [frontend, daemon]
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: hecate-app-marthad
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: erlef/setup-beam@v1
-        with:
-          otp-version: "27"
-          rebar3-version: "3.24"
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: hecate-app-marthad/priv/static/
-
-      - run: rebar3 get-deps && rebar3 compile
-      - run: rebar3 as prod release
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: hecate-app-marthad-release
-          path: hecate-app-marthad/_build/prod/rel/hecate_app_marthad/
-          retention-days: 7

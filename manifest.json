@@ -1,15 +1,17 @@
 {
-  "name": "martha",
-  "version": "0.1.0",
+  "name": "hecate-app-martha",
+  "display_name": "Martha",
+  "version": "0.2.0",
   "icon": "\ud83e\uddd1\u200d\ud83d\udcbb",
   "description": "AI-Assisted Application Lifecycle",
+  "callback_module": "app_martha",
+  "plugin_type": "in_vm",
   "tag": "martha-studio",
   "trust_level": "untrusted",
   "permissions": [],
   "repository": "https://github.com/hecate-apps/hecate-app-martha",
   "license": "Apache-2.0",
   "appstore": {
-    "plugin_name": "Martha",
     "org": "hecate-apps",
     "homepage": "https://github.com/hecate-apps/hecate-app-martha",
     "tags": "ai,agent,devops,alc,code-generation",
@@ -17,7 +19,8 @@
     "fee_cents": 0,
     "fee_currency": "EUR",
     "node_limit": 0,
-    "oci_image": "ghcr.io/hecate-apps/hecate-app-marthad",
-    "min_daemon_version": "0.14.0"
+    "min_daemon_version": "0.14.0",
+    "group_name": "AI",
+    "group_icon": "brain"
   }
 }

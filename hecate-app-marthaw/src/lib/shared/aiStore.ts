@@ -1,7 +1,8 @@
 import { writable, derived, get } from 'svelte/store';
+import type { PhaseCode } from '../types.js';
 
-// --- Types ---
-export type PhaseCode = 'dna' | 'anp' | 'tni' | 'dno';
+// Re-export PhaseCode for consumers that imported from here
+export type { PhaseCode };
 
 export interface PhaseInfo {
 	code: PhaseCode;
@@ -33,11 +34,18 @@ type PhaseModelPrefs = Record<PhaseCode, string | null>;
 function loadPhaseModelPrefs(): PhaseModelPrefs {
 	try {
 		const raw = localStorage.getItem(PHASE_MODEL_PREFS_KEY);
-		if (raw) return JSON.parse(raw);
+		if (raw) {
+			const parsed = JSON.parse(raw);
+			// Migrate old 4-phase prefs to 2-phase
+			if ('dna' in parsed && !('planning' in parsed)) {
+				return { planning: null, crafting: null };
+			}
+			return parsed;
+		}
 	} catch {
 		// ignore
 	}
-	return { dna: null, anp: null, tni: null, dno: null };
+	return { planning: null, crafting: null };
 }
 
 function savePhaseModelPrefs(prefs: PhaseModelPrefs): void {
@@ -62,7 +70,7 @@ export function modelAffinity(name: string): 'code' | 'general' {
 }
 
 export function phaseAffinity(phase: PhaseCode): 'code' | 'general' {
-	return phase === 'tni' ? 'code' : 'general';
+	return phase === 'crafting' ? 'code' : 'general';
 }
 
 // --- Actions ---
@@ -100,35 +108,19 @@ export function parseAgentEvents(text: string): string[] {
 // --- Phase Metadata ---
 export const PHASES: PhaseInfo[] = [
 	{
-		code: 'dna',
-		name: 'Discovery & Analysis',
-		shortName: 'DnA',
-		description: 'Understand the domain through event storming',
-		role: 'dna',
-		color: 'phase-dna'
+		code: 'planning',
+		name: 'Planning',
+		shortName: 'Planning',
+		description: 'Design aggregates, plan desks, map dependencies',
+		role: 'planning',
+		color: 'phase-planning'
 	},
 	{
-		code: 'anp',
-		name: 'Architecture & Planning',
-		shortName: 'AnP',
-		description: 'Plan desks, map dependencies, sequence work',
-		role: 'anp',
-		color: 'phase-anp'
-	},
-	{
-		code: 'tni',
-		name: 'Testing & Implementation',
-		shortName: 'TnI',
-		description: 'Generate code, run tests, validate criteria',
-		role: 'tni',
-		color: 'phase-tni'
-	},
-	{
-		code: 'dno',
-		name: 'Deployment & Operations',
-		shortName: 'DnO',
-		description: 'Deploy, monitor health, handle incidents',
-		role: 'dno',
-		color: 'phase-dno'
+		code: 'crafting',
+		name: 'Crafting',
+		shortName: 'Crafting',
+		description: 'Generate code, run tests, deliver releases',
+		role: 'crafting',
+		color: 'phase-crafting'
 	}
 ];

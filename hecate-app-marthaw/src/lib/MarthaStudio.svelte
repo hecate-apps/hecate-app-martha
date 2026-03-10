@@ -35,10 +35,8 @@
 	import DivisionNav from './guide_venture/DivisionNav.svelte';
 	import VisionOracle from './compose_vision/VisionOracle.svelte';
 	import StormVentureBigPicture from './storm_venture_big_picture/StormVentureBigPicture.svelte';
-	import DesignDivision from './design_division/DesignDivision.svelte';
 	import PlanDivision from './plan_division/PlanDivision.svelte';
 	import CraftDivision from './craft_division/CraftDivision.svelte';
-	import DeployDivision from './deploy_division/DeployDivision.svelte';
 	import PhaseProgress from './shared/PhaseProgress.svelte';
 	import EventStreamViewer from './shared/EventStreamViewer.svelte';
 	import AIAssistPanel from './shared/AIAssistPanel.svelte';
@@ -456,14 +454,10 @@
 					<PhaseProgress />
 
 					<div class="flex-1 overflow-y-auto">
-						{#if $selectedPhase === 'dna'}
-							<DesignDivision />
-						{:else if $selectedPhase === 'anp'}
+						{#if $selectedPhase === 'planning'}
 							<PlanDivision />
-						{:else if $selectedPhase === 'tni'}
+						{:else if $selectedPhase === 'crafting'}
 							<CraftDivision />
-						{:else if $selectedPhase === 'dno'}
-							<DeployDivision />
 						{/if}
 					</div>
 				{:else if $divisions.length === 0}

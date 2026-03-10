@@ -1,5 +1,4 @@
 name: Release
-
 on:
   push:
     tags: ["v*"]
@@ -8,18 +7,30 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Create GitHub release
+  package:
+    name: Build plugin package
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
         with:
-          fetch-depth: 0
-
+          otp-version: "27"
+          rebar3-version: "3.24"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: hecate-app-marthaw/package-lock.json
+      - name: Build frontend
+        working-directory: hecate-app-marthaw
+        run: npm ci && npx svelte-kit sync && npm run build:lib
+      - name: Copy frontend assets
+        run: mkdir -p hecate-app-marthad/priv/static && cp -r hecate-app-marthaw/dist/* hecate-app-marthad/priv/static/
+      - name: Build plugin tarball
+        run: bash hecate-app-marthad/scripts/package.sh
       - name: Extract version
         id: version
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-
       - name: Extract changelog entry
         id: changelog
         run: |
@@ -28,8 +39,8 @@ jobs:
           echo "body<<EOF" >> "$GITHUB_OUTPUT"
           echo "${BODY}" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
-
       - uses: softprops/action-gh-release@v2
         with:
           body: ${{ steps.changelog.outputs.body }}
           generate_release_notes: false
+          files: hecate-app-marthad/_build/plugin/hecate-app-martha.tar.gz
