@@ -27,6 +27,4 @@ row_to_map([DivisionId, VentureId, ContextName, Status, StatusLabel,
         opened_at => OpenedAt,
         shelved_at => ShelvedAt,
         concluded_at => ConcludedAt
-    };
-row_to_map(Row) when is_tuple(Row) ->
-    row_to_map(tuple_to_list(Row)).
+    }.

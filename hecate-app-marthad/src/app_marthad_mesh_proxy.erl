@@ -10,6 +10,9 @@
 
 -export([publish/2]).
 
+%% hecate_mesh is dynamically loaded (only present in-VM)
+-dialyzer({nowarn_function, try_hecate_mesh/2}).
+
 -define(PG_SCOPE, hecate_app_marthad).
 -define(PG_GROUP, martha_mesh_bridge).
 
