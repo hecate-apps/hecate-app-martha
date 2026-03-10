@@ -39,7 +39,10 @@ init(#{plugin_name := PluginName, store_id := StoreId, data_dir := DataDir}) ->
 
 -spec routes() -> [{string(), module(), term()}].
 routes() ->
-    app_marthad_api_routes:discover_routes().
+    %% Domain handlers return routes with "/api/" prefix (for standalone mode).
+    %% Plugin loader mounts at /plugin/{name}/api/, so strip the prefix to
+    %% avoid double "/api/api/..." paths.
+    [strip_api_prefix(R) || R <- app_marthad_api_routes:discover_routes()].
 
 -spec store_config() -> #hecate_store_config{}.
 store_config() ->
@@ -71,3 +74,10 @@ flag_maps() ->
         <<"planning_status">> => ?PLANNING_FLAG_MAP,
         <<"crafting_status">> => ?CRAFTING_FLAG_MAP
     }.
+
+%%% Internal
+
+strip_api_prefix({"/api" ++ Rest, Handler, Opts}) ->
+    {Rest, Handler, Opts};
+strip_api_prefix(Route) ->
+    Route.
