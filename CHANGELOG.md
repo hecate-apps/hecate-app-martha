@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.2.4] - 2026-03-11
+
+### Added
+
+- Division storming lifecycle (CMD + PRJ + QRY): `guide_division_storming`, `project_division_stormings`, `query_division_stormings`
+- Kanban lifecycle completion (CMD + PRJ + QRY): `guide_kanban_lifecycle` with submit/pick/complete/return desks, `project_division_kanbans`, `query_division_kanbans`
+- `available_actions` fields in division projection — frontends derive lifecycle buttons from backend state machine
+- `phaseStatusLabel()` and `phaseAvailableActions()` helpers in types.ts
+- `phaseVisual()` — actions-based icon/color derivation (no label parsing)
+
+### Changed
+
+- Division projection enriched with `{phase}_available_actions` per phase (storming, planning, kanban, crafting)
+- Frontend refactored to pure view: zero domain logic, no bit flag constants for phase decisions
+- PhaseProgress.svelte — lifecycle buttons driven by `available_actions` from backend
+- DivisionNav.svelte — phase indicators use actions-based visual state
+- Slimmed `guide_division_planning` to lifecycle only (content moved to storming)
+- Slimmed `project_division_plannings` to lifecycle only (content projections moved to stormings)
+- App count: 9 → 15 (5 new storming/kanban apps + PM wiring)
+- rebar.config release version aligned to 0.2.4
+
+### Removed
+
+- Frontend `PHASE_*` constants (`PHASE_INITIATED`, `PHASE_OPEN`, `PHASE_SHELVED`, etc.)
+- Frontend `phaseLabel()`, `phaseStatusClass()`, `phaseStatus()` functions
+- All label-based frontend logic (labels are opaque display strings, never for branching)
+
 ## [0.2.0] - 2026-03-10
 
 ### Changed
