@@ -8,7 +8,7 @@
 
 -include_lib("guide_division_storming/include/storming_status.hrl").
 -include_lib("guide_division_planning/include/planning_status.hrl").
--include_lib("guide_kanban_lifecycle/include/kanban_status.hrl").
+-include_lib("guide_kanban_lifecycle/include/kanban_board_status.hrl").
 -include_lib("guide_division_crafting/include/crafting_status.hrl").
 
 -export([interested_in/0, init/1, project/4]).
@@ -29,8 +29,8 @@ interested_in() ->
      <<"planning_resumed_v1">>,
      <<"planning_submitted_v1">>,
      %% Kanban lifecycle
-     <<"kanban_initiated_v1">>,
-     <<"kanban_archived_v1">>,
+     <<"kanban_board_initiated_v1">>,
+     <<"kanban_board_archived_v1">>,
      %% Crafting lifecycle
      <<"crafting_initiated_v1">>,
      <<"crafting_archived_v1">>,
@@ -149,18 +149,18 @@ do_project(<<"planning_archived_v1">>, Data, State, RM) ->
 %% Kanban lifecycle
 %% ===================================================================
 
-do_project(<<"kanban_initiated_v1">>, Data, State, RM) ->
+do_project(<<"kanban_board_initiated_v1">>, Data, State, RM) ->
     update_phase_status(gf(division_id, Data),
         kanban_status, kanban_status_label, kanban_available_actions, kanban,
-        ?KANBAN_FLAG_MAP,
-        fun(_S) -> ?KANBAN_INITIATED bor ?KANBAN_ACTIVE end,
+        ?BOARD_FLAG_MAP,
+        fun(_S) -> ?BOARD_INITIATED bor ?BOARD_ACTIVE end,
         State, RM);
 
-do_project(<<"kanban_archived_v1">>, Data, State, RM) ->
+do_project(<<"kanban_board_archived_v1">>, Data, State, RM) ->
     update_phase_status(gf(division_id, Data),
         kanban_status, kanban_status_label, kanban_available_actions, kanban,
-        ?KANBAN_FLAG_MAP,
-        fun(S) -> evoq_bit_flags:set(S, ?KANBAN_ARCHIVED) end,
+        ?BOARD_FLAG_MAP,
+        fun(S) -> evoq_bit_flags:set(S, ?BOARD_ARCHIVED) end,
         State, RM);
 
 %% ===================================================================
@@ -263,10 +263,10 @@ available_actions(Status, planning) ->
             end
     end;
 available_actions(Status, kanban) ->
-    case evoq_bit_flags:has(Status, ?KANBAN_ARCHIVED) of
+    case evoq_bit_flags:has(Status, ?BOARD_ARCHIVED) of
         true  -> [];
         false ->
-            case evoq_bit_flags:has(Status, ?KANBAN_ACTIVE) of
+            case evoq_bit_flags:has(Status, ?BOARD_ACTIVE) of
                 true  -> [<<"archive">>];
                 false -> []
             end

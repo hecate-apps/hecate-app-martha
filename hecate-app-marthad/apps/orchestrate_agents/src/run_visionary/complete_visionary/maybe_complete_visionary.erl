@@ -1,0 +1,52 @@
+%%% @doc maybe_complete_visionary handler.
+%%% Validates completion command against aggregate state and produces
+%%% visionary_completed_v1 event with aggregate state echoed.
+-module(maybe_complete_visionary).
+
+-include("agent_session_state.hrl").
+-include_lib("evoq/include/evoq.hrl").
+
+-export([handle/2, dispatch/1]).
+
+-spec handle(complete_visionary_v1:complete_visionary_v1(),
+             agent_orchestration_aggregate:state()) ->
+    {ok, [visionary_completed_v1:visionary_completed_v1()]} | {error, term()}.
+handle(Cmd, State) ->
+    case complete_visionary_v1:validate(Cmd) of
+        ok ->
+            Event = visionary_completed_v1:new(#{
+                session_id => complete_visionary_v1:get_session_id(Cmd),
+                venture_id => State#agent_session_state.venture_id,
+                division_id => State#agent_session_state.division_id,
+                tier => State#agent_session_state.tier,
+                model => State#agent_session_state.model,
+                notation_output => complete_visionary_v1:get_notation_output(Cmd),
+                parsed_terms => complete_visionary_v1:get_parsed_terms(Cmd),
+                tokens_in => complete_visionary_v1:get_tokens_in(Cmd),
+                tokens_out => complete_visionary_v1:get_tokens_out(Cmd)
+            }),
+            {ok, [Event]};
+        {error, _} = Err ->
+            Err
+    end.
+
+-spec dispatch(complete_visionary_v1:complete_visionary_v1()) ->
+    {ok, non_neg_integer(), [map()]} | {error, term()}.
+dispatch(Cmd) ->
+    SessionId = complete_visionary_v1:get_session_id(Cmd),
+    Timestamp = erlang:system_time(millisecond),
+    EvoqCmd = #evoq_command{
+        command_type = complete_agent,
+        aggregate_type = agent_orchestration_aggregate,
+        aggregate_id = SessionId,
+        payload = complete_visionary_v1:to_map(Cmd),
+        metadata = #{timestamp => Timestamp, aggregate_type => agent_orchestration_aggregate},
+        causation_id = undefined,
+        correlation_id = undefined
+    },
+    Opts = #{
+        store_id => orchestration_store,
+        adapter => reckon_evoq_adapter,
+        consistency => eventual
+    },
+    evoq_dispatcher:dispatch(EvoqCmd, Opts).

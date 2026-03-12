@@ -1,6 +1,6 @@
 %%% @doc SQLite store for project_division_kanbans read models.
 %%%
-%%% Tables: division_kanbans, kanban_items
+%%% Tables: division_kanbans, kanban_cards
 %%% @end
 -module(project_division_kanbans_store).
 -behaviour(gen_server).
@@ -113,22 +113,29 @@ create_tables(Db) ->
         "CREATE INDEX IF NOT EXISTS idx_kanbans_venture ON division_kanbans(venture_id);",
         "CREATE INDEX IF NOT EXISTS idx_kanbans_status ON division_kanbans(status);",
 
-        "CREATE TABLE IF NOT EXISTS kanban_items (
-            item_id TEXT PRIMARY KEY,
+        "CREATE TABLE IF NOT EXISTS kanban_cards (
+            card_id TEXT PRIMARY KEY,
             division_id TEXT NOT NULL,
             title TEXT,
             description TEXT,
-            item_type TEXT,
-            status_text TEXT DEFAULT 'ready',
-            submitted_by TEXT,
-            submitted_at INTEGER,
+            card_type TEXT,
+            status INTEGER NOT NULL DEFAULT 1,
+            status_text TEXT DEFAULT 'posted',
+            posted_by TEXT,
+            posted_at INTEGER,
             picked_by TEXT,
             picked_at INTEGER,
-            completed_at INTEGER,
-            return_reason TEXT
+            finished_at INTEGER,
+            parked_by TEXT,
+            parked_at INTEGER,
+            park_reason TEXT,
+            blocked_by TEXT,
+            blocked_at INTEGER,
+            block_reason TEXT
         );",
-        "CREATE INDEX IF NOT EXISTS idx_items_division ON kanban_items(division_id);",
-        "CREATE INDEX IF NOT EXISTS idx_items_status ON kanban_items(status_text);"
+        "CREATE INDEX IF NOT EXISTS idx_cards_division ON kanban_cards(division_id);",
+        "CREATE INDEX IF NOT EXISTS idx_cards_status ON kanban_cards(status);",
+        "CREATE INDEX IF NOT EXISTS idx_cards_status_text ON kanban_cards(status_text);"
     ],
     lists:foreach(fun(Sql) -> ok = esqlite3:exec(Db, Sql) end, Stmts),
     ok.

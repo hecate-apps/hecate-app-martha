@@ -39,6 +39,7 @@
 	import PlanDivision from './plan_division/PlanDivision.svelte';
 	import KanbanDivision from './kanban_division/KanbanDivision.svelte';
 	import CraftDivision from './craft_division/CraftDivision.svelte';
+	import AgentPipeline from './agent_orchestration/AgentPipeline.svelte';
 	import PhaseProgress from './shared/PhaseProgress.svelte';
 	import EventStreamViewer from './shared/EventStreamViewer.svelte';
 	import AIAssistPanel from './shared/AIAssistPanel.svelte';
@@ -57,6 +58,7 @@
 	let browserSearch = $state('');
 	let showNewVentureForm = $state(false);
 	let showArchived = $state(false);
+	let showAgentPipeline = $state(false);
 
 	// --- Phase grouping for Venture Browser ---
 	type PhaseGroup = { label: string; ventures: Venture[] };
@@ -428,19 +430,31 @@
 		<!-- State 3: Active venture -->
 		<VentureHeader />
 
-		<!-- Connection status indicator -->
-		<div class="absolute top-2 right-2 flex items-center gap-1.5 text-[10px] z-10">
-			<span
-				class="inline-block w-1.5 h-1.5 rounded-full {connectionStatus === 'connected'
-					? 'bg-success-400'
-					: connectionStatus === 'connecting'
-						? 'bg-yellow-400 animate-pulse'
-						: 'bg-danger-400'}"
-			></span>
-			<span class="text-surface-500">
-				{connectionStatus === 'connected'
-					? `v${health?.version ?? '?'}`
-					: connectionStatus}
+		<!-- Connection status + agents toggle -->
+		<div class="absolute top-2 right-2 flex items-center gap-2 text-[10px] z-10">
+			<button
+				onclick={() => (showAgentPipeline = !showAgentPipeline)}
+				class="px-2 py-0.5 rounded transition-colors
+					{showAgentPipeline
+					? 'bg-hecate-600/20 text-hecate-300'
+					: 'text-surface-400 hover:text-surface-200 hover:bg-surface-700'}"
+				title="Agent Pipeline"
+			>
+				Agents
+			</button>
+			<span class="flex items-center gap-1.5">
+				<span
+					class="inline-block w-1.5 h-1.5 rounded-full {connectionStatus === 'connected'
+						? 'bg-success-400'
+						: connectionStatus === 'connecting'
+							? 'bg-yellow-400 animate-pulse'
+							: 'bg-danger-400'}"
+				></span>
+				<span class="text-surface-500">
+					{connectionStatus === 'connected'
+						? `v${health?.version ?? '?'}`
+						: connectionStatus}
+				</span>
 			</span>
 		</div>
 
@@ -450,9 +464,11 @@
 				<DivisionNav />
 			{/if}
 
-			<!-- Main: Phase content -->
+			<!-- Main: Phase content or Agent Pipeline -->
 			<div class="flex-1 flex flex-col overflow-hidden">
-				{#if $selectedDivision}
+				{#if showAgentPipeline}
+					<AgentPipeline />
+				{:else if $selectedDivision}
 					<PhaseProgress />
 
 					<div class="flex-1 overflow-y-auto">

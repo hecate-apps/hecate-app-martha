@@ -15,45 +15,67 @@ init([]) ->
             restart => permanent,
             type => worker
         },
-        %% Projection: kanban_initiated_v1 -> division_kanbans table
+
+        %% Board projections
         #{
-            id => kanban_initiated_v1_to_division_kanbans_sup,
-            start => {kanban_initiated_v1_to_division_kanbans_sup, start_link, []},
+            id => kanban_board_initiated_v1_to_division_kanbans_sup,
+            start => {kanban_board_initiated_v1_to_division_kanbans_sup, start_link, []},
             restart => permanent,
             type => supervisor
         },
-        %% Projection: kanban_archived_v1 -> division_kanbans table
         #{
-            id => kanban_archived_v1_to_division_kanbans_sup,
-            start => {kanban_archived_v1_to_division_kanbans_sup, start_link, []},
+            id => kanban_board_archived_v1_to_division_kanbans_sup,
+            start => {kanban_board_archived_v1_to_division_kanbans_sup, start_link, []},
             restart => permanent,
             type => supervisor
         },
-        %% Projection: kanban_item_submitted_v1 -> kanban_items table
+
+        %% Card projections
         #{
-            id => kanban_item_submitted_v1_to_kanban_items_sup,
-            start => {kanban_item_submitted_v1_to_kanban_items_sup, start_link, []},
+            id => kanban_card_posted_v1_to_kanban_cards_sup,
+            start => {kanban_card_posted_v1_to_kanban_cards_sup, start_link, []},
             restart => permanent,
             type => supervisor
         },
-        %% Projection: kanban_item_picked_v1 -> kanban_items table
         #{
-            id => kanban_item_picked_v1_to_kanban_items_sup,
-            start => {kanban_item_picked_v1_to_kanban_items_sup, start_link, []},
+            id => kanban_card_picked_v1_to_kanban_cards_sup,
+            start => {kanban_card_picked_v1_to_kanban_cards_sup, start_link, []},
             restart => permanent,
             type => supervisor
         },
-        %% Projection: kanban_item_completed_v1 -> kanban_items table
         #{
-            id => kanban_item_completed_v1_to_kanban_items_sup,
-            start => {kanban_item_completed_v1_to_kanban_items_sup, start_link, []},
+            id => kanban_card_finished_v1_to_kanban_cards_sup,
+            start => {kanban_card_finished_v1_to_kanban_cards_sup, start_link, []},
             restart => permanent,
             type => supervisor
         },
-        %% Projection: kanban_item_returned_v1 -> kanban_items table
         #{
-            id => kanban_item_returned_v1_to_kanban_items_sup,
-            start => {kanban_item_returned_v1_to_kanban_items_sup, start_link, []},
+            id => kanban_card_unpicked_v1_to_kanban_cards_sup,
+            start => {kanban_card_unpicked_v1_to_kanban_cards_sup, start_link, []},
+            restart => permanent,
+            type => supervisor
+        },
+        #{
+            id => kanban_card_parked_v1_to_kanban_cards_sup,
+            start => {kanban_card_parked_v1_to_kanban_cards_sup, start_link, []},
+            restart => permanent,
+            type => supervisor
+        },
+        #{
+            id => kanban_card_unparked_v1_to_kanban_cards_sup,
+            start => {kanban_card_unparked_v1_to_kanban_cards_sup, start_link, []},
+            restart => permanent,
+            type => supervisor
+        },
+        #{
+            id => kanban_card_blocked_v1_to_kanban_cards_sup,
+            start => {kanban_card_blocked_v1_to_kanban_cards_sup, start_link, []},
+            restart => permanent,
+            type => supervisor
+        },
+        #{
+            id => kanban_card_unblocked_v1_to_kanban_cards_sup,
+            start => {kanban_card_unblocked_v1_to_kanban_cards_sup, start_link, []},
             restart => permanent,
             type => supervisor
         }

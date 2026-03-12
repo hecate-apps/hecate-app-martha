@@ -22,17 +22,26 @@ echo "==> Preparing package..."
 rm -rf "$STAGING_DIR"
 mkdir -p "$STAGING_DIR/ebin"
 
-## Consolidate all .beam files from root app + 9 domain apps
+## Consolidate all .beam files from root app + 18 domain apps
 DOMAIN_APPS=(
     guide_venture_lifecycle
     project_ventures
     query_ventures
     guide_division_planning
-    project_division_plannings
-    query_division_plannings
+    guide_division_storming
     guide_division_crafting
+    guide_kanban_lifecycle
+    orchestrate_agents
+    project_agent_sessions
+    query_agent_sessions
+    project_division_plannings
+    project_division_stormings
     project_division_craftings
+    project_division_kanbans
+    query_division_plannings
+    query_division_stormings
     query_division_craftings
+    query_division_kanbans
 )
 
 for ebin_dir in "$ROOT_DIR/_build/default/lib/hecate_app_marthad/ebin"; do

@@ -50,6 +50,73 @@
 	// Groom: selected canonical sticky per stack
 	let groomSelections = $state<Record<string, string>>({});
 
+	// --- Storm UX: scatter + ghost stickies ---
+	// Random rotation/jitter for each sticky during Storm phase
+	let stickyScatter = $state<Map<string, { rotate: number; dx: number; dy: number }>>(new Map());
+
+	function getScatter(stickyId: string): { rotate: number; dx: number; dy: number } {
+		if (!stickyScatter.has(stickyId)) {
+			stickyScatter.set(stickyId, {
+				rotate: (Math.random() - 0.5) * 6,  // -3 to +3 degrees
+				dx: (Math.random() - 0.5) * 4,       // -2 to +2 px
+				dy: (Math.random() - 0.5) * 4
+			});
+		}
+		return stickyScatter.get(stickyId)!;
+	}
+
+	// Ghost stickies from AI Oracle
+	interface GhostSticky {
+		id: string;
+		text: string;
+	}
+	let ghostStickies = $state<GhostSticky[]>([]);
+	let ghostIdCounter = 0;
+
+	async function requestOracleGhosts() {
+		const agents = $bigPictureAgents;
+		const oracle = agents.find((a) => a.id === 'oracle');
+		if (!oracle) return;
+		openAIAssist(buildAgentContext(oracle.prompt), oracle.id);
+	}
+
+	function addGhostSticky(text: string) {
+		ghostStickies = [...ghostStickies, { id: `ghost-${ghostIdCounter++}`, text }];
+	}
+
+	async function acceptGhost(ghost: GhostSticky) {
+		await postEventSticky(vid(), ghost.text, 'oracle');
+		ghostStickies = ghostStickies.filter((g) => g.id !== ghost.id);
+	}
+
+	function dismissGhost(ghost: GhostSticky) {
+		ghostStickies = ghostStickies.filter((g) => g.id !== ghost.id);
+	}
+
+	// Event count pulse animation
+	let eventCountPulse = $state(false);
+	let lastEventCount = $state(0);
+	$effect(() => {
+		const count = $bigPictureEventCount;
+		if (count > lastEventCount && lastEventCount > 0) {
+			eventCountPulse = true;
+			setTimeout(() => (eventCountPulse = false), 300);
+		}
+		lastEventCount = count;
+	});
+
+	// Phase transition animation
+	let phaseTransition = $state(false);
+	let lastPhase = $state('');
+	$effect(() => {
+		const phase = $bigPicturePhase;
+		if (phase !== lastPhase && lastPhase !== '') {
+			phaseTransition = true;
+			setTimeout(() => (phaseTransition = false), 300);
+		}
+		lastPhase = phase;
+	});
+
 	function vid(): string {
 		return $activeVenture?.venture_id ?? '';
 	}
@@ -198,7 +265,10 @@
 			<div class="flex-1"></div>
 
 			{#if $bigPicturePhase !== 'ready' && $bigPicturePhase !== 'promoted' && $bigPicturePhase !== 'shelved'}
-				<span class="text-[10px] text-surface-400">
+				<span
+					class="text-[10px] transition-all duration-300
+						{eventCountPulse ? 'scale-110 text-es-event font-bold' : 'text-surface-400'}"
+				>
 					{$bigPictureEventCount} events
 				</span>
 			{/if}
@@ -240,7 +310,8 @@
 	</div>
 
 	<!-- Main content area -->
-	<div class="flex-1 overflow-y-auto">
+	<div class="flex-1 overflow-y-auto transition-opacity duration-150
+		{phaseTransition ? 'opacity-0' : 'opacity-100'}">
 		<!-- PHASE: READY -->
 		{#if $bigPicturePhase === 'ready'}
 			<div class="flex items-center justify-center h-full">
@@ -293,14 +364,17 @@
 		<!-- PHASE: STORM (High Octane) -->
 		{:else if $bigPicturePhase === 'storm'}
 			<div class="flex flex-col h-full">
-				<!-- Event stream display -->
+				<!-- Event stream display (scattered post-it wall) -->
 				<div class="flex-1 overflow-y-auto p-4">
-					<div class="flex flex-wrap gap-2 content-start">
+					<div class="flex flex-wrap gap-2 content-start storm-board">
 						{#each $bigPictureEvents as evt (evt.sticky_id)}
+							{@const sc = getScatter(evt.sticky_id)}
 							<div
 								class="group relative px-3 py-2 rounded text-xs
 									bg-es-event/15 border border-es-event/30 text-surface-100
-									hover:border-es-event/50 transition-colors"
+									hover:border-es-event/50 transition-all duration-200
+									storm-sticky"
+								style="transform: rotate({sc.rotate}deg) translate({sc.dx}px, {sc.dy}px)"
 							>
 								<span>{evt.text}</span>
 								<span class="text-[8px] text-es-event/60 ml-1.5">
@@ -319,7 +393,42 @@
 							</div>
 						{/each}
 
-						{#if $bigPictureEvents.length === 0}
+						<!-- Ghost stickies from AI Oracle -->
+						{#each ghostStickies as ghost (ghost.id)}
+							<div
+								class="group relative px-3 py-2 rounded text-xs
+									border-2 border-dashed border-es-event/40 text-surface-300
+									opacity-50 hover:opacity-80 transition-all duration-200
+									storm-sticky ghost-sticky"
+								style="transform: rotate({(Math.random() - 0.5) * 4}deg)"
+							>
+								<span class="italic">{ghost.text}</span>
+								<span class="text-[8px] text-es-event/40 ml-1.5">oracle</span>
+								<div class="absolute -top-1 -right-1 flex gap-0.5
+									opacity-0 group-hover:opacity-100 transition-opacity">
+									<button
+										onclick={() => acceptGhost(ghost)}
+										class="w-4 h-4 rounded-full bg-health-ok/20 border border-health-ok/40
+											text-health-ok text-[8px] flex items-center justify-center
+											hover:bg-health-ok/30"
+										title="Accept"
+									>
+										{'\u{2713}'}
+									</button>
+									<button
+										onclick={() => dismissGhost(ghost)}
+										class="w-4 h-4 rounded-full bg-surface-700 border border-surface-600
+											text-surface-400 hover:text-health-err
+											text-[8px] flex items-center justify-center"
+										title="Dismiss"
+									>
+										{'\u{2715}'}
+									</button>
+								</div>
+							</div>
+						{/each}
+
+						{#if $bigPictureEvents.length === 0 && ghostStickies.length === 0}
 							<div class="text-surface-500 text-xs italic">
 								Start throwing events! Type below or ask an AI agent...
 							</div>
@@ -1137,3 +1246,25 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	/* Storm phase: stickies animate to aligned grid on phase change */
+	:global(.storm-board .storm-sticky) {
+		transition: transform 0.5s ease, opacity 0.3s ease;
+	}
+
+	/* Ghost stickies: translucent dashed border, subtle float */
+	:global(.ghost-sticky) {
+		animation: ghost-float 3s ease-in-out infinite;
+	}
+
+	@keyframes ghost-float {
+		0%, 100% { transform: translateY(0px); }
+		50% { transform: translateY(-2px); }
+	}
+
+	/* Scale utility for event count pulse */
+	:global(.scale-110) {
+		transform: scale(1.15);
+	}
+</style>

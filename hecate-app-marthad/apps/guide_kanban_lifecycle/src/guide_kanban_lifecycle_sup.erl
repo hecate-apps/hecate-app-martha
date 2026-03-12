@@ -23,28 +23,40 @@ init([]) ->
     },
 
     Children = [
-        %% ── PG emitters ──
+        %% ── Board PG emitters ──
 
-        %% Lifecycle
-        #{id => kanban_initiated_v1_to_pg,
-          start => {kanban_initiated_v1_to_pg, start_link, []},
+        #{id => kanban_board_initiated_v1_to_pg,
+          start => {kanban_board_initiated_v1_to_pg, start_link, []},
           restart => permanent, type => worker},
-        #{id => kanban_archived_v1_to_pg,
-          start => {kanban_archived_v1_to_pg, start_link, []},
+        #{id => kanban_board_archived_v1_to_pg,
+          start => {kanban_board_archived_v1_to_pg, start_link, []},
           restart => permanent, type => worker},
 
-        %% Item operations
-        #{id => kanban_item_submitted_v1_to_pg,
-          start => {kanban_item_submitted_v1_to_pg, start_link, []},
+        %% ── Card PG emitters ──
+
+        #{id => kanban_card_posted_v1_to_pg,
+          start => {kanban_card_posted_v1_to_pg, start_link, []},
           restart => permanent, type => worker},
-        #{id => kanban_item_picked_v1_to_pg,
-          start => {kanban_item_picked_v1_to_pg, start_link, []},
+        #{id => kanban_card_picked_v1_to_pg,
+          start => {kanban_card_picked_v1_to_pg, start_link, []},
           restart => permanent, type => worker},
-        #{id => kanban_item_completed_v1_to_pg,
-          start => {kanban_item_completed_v1_to_pg, start_link, []},
+        #{id => kanban_card_finished_v1_to_pg,
+          start => {kanban_card_finished_v1_to_pg, start_link, []},
           restart => permanent, type => worker},
-        #{id => kanban_item_returned_v1_to_pg,
-          start => {kanban_item_returned_v1_to_pg, start_link, []},
+        #{id => kanban_card_unpicked_v1_to_pg,
+          start => {kanban_card_unpicked_v1_to_pg, start_link, []},
+          restart => permanent, type => worker},
+        #{id => kanban_card_parked_v1_to_pg,
+          start => {kanban_card_parked_v1_to_pg, start_link, []},
+          restart => permanent, type => worker},
+        #{id => kanban_card_unparked_v1_to_pg,
+          start => {kanban_card_unparked_v1_to_pg, start_link, []},
+          restart => permanent, type => worker},
+        #{id => kanban_card_blocked_v1_to_pg,
+          start => {kanban_card_blocked_v1_to_pg, start_link, []},
+          restart => permanent, type => worker},
+        #{id => kanban_card_unblocked_v1_to_pg,
+          start => {kanban_card_unblocked_v1_to_pg, start_link, []},
           restart => permanent, type => worker},
 
         %% ── Process managers ──

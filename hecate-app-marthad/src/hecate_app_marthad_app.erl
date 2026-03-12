@@ -18,12 +18,13 @@
 -export([start/2, stop/1]).
 
 %% reckon_db is excluded from dialyzer PLT (no debug_info in hex dep beams).
--dialyzer({nowarn_function, start_martha_store/0}).
+-dialyzer({nowarn_function, [start_martha_store/0, start_orchestration_store/0]}).
 
 start(_StartType, _StartArgs) ->
     ok = app_marthad_paths:ensure_layout(),
     ok = ensure_pg_scope(),
     ok = start_martha_store(),
+    ok = start_orchestration_store(),
     ok = start_cowboy(),
     logger:info("[hecate_app_marthad] Started, socket at ~s",
                 [app_marthad_paths:socket_path("api.sock")]),
@@ -65,6 +66,31 @@ start_martha_store() ->
             logger:error("[hecate_app_marthad] Failed to start martha_store: ~p",
                         [Reason]),
             error({martha_store_start_failed, Reason})
+    end.
+
+start_orchestration_store() ->
+    DataDir = app_marthad_paths:reckon_path("orchestration"),
+    ok = filelib:ensure_path(DataDir),
+    Config = #store_config{
+        store_id = orchestration_store,
+        data_dir = DataDir,
+        mode = single,
+        writer_pool_size = 3,
+        reader_pool_size = 3,
+        gateway_pool_size = 2,
+        options = #{}
+    },
+    case reckon_db_sup:start_store(Config) of
+        {ok, _Pid} ->
+            logger:info("[hecate_app_marthad] orchestration_store ready"),
+            ok;
+        {error, {already_started, _Pid}} ->
+            logger:info("[hecate_app_marthad] orchestration_store already running"),
+            ok;
+        {error, Reason} ->
+            logger:error("[hecate_app_marthad] Failed to start orchestration_store: ~p",
+                        [Reason]),
+            error({orchestration_store_start_failed, Reason})
     end.
 
 start_cowboy() ->

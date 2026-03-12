@@ -1,7 +1,7 @@
 %%% @doc Process manager: on division_identified_v1, initiate division kanban.
 %%%
 %%% Subscribes to martha_store for division_identified_v1 events.
-%%% When a division is identified, dispatches initiate_kanban_v1 command
+%%% When a division is identified, dispatches initiate_kanban_board_v1 command
 %%% to create the kanban board for that division.
 %%% @end
 -module(on_division_identified_initiate_division_kanban).
@@ -28,17 +28,17 @@ handle_info({events, Events}, State) ->
         DivisionId = get_value(division_id, EvtMap),
         VentureId = get_value(venture_id, EvtMap),
         ContextName = get_value(context_name, EvtMap),
-        case initiate_kanban_v1:new(#{
+        case initiate_kanban_board_v1:new(#{
             division_id => DivisionId,
             venture_id => VentureId,
             context_name => ContextName,
             initiated_by => <<"system">>
         }) of
             {ok, Cmd} ->
-                case maybe_initiate_kanban:dispatch(Cmd) of
+                case maybe_initiate_kanban_board:dispatch(Cmd) of
                     {ok, _, _} -> ok;
                     {error, Reason} ->
-                        logger:warning("[PM] initiate_kanban failed: ~p", [Reason])
+                        logger:warning("[PM] initiate_kanban_board failed: ~p", [Reason])
                 end;
             {error, Reason} ->
                 logger:warning("[PM] invalid command: ~p", [Reason])

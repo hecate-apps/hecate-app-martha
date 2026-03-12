@@ -1,0 +1,11 @@
+{application, query_agent_sessions, [
+    {description, "Agent session queries"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {mod, {query_agent_sessions_app, []}},
+    {applications, [kernel, stdlib, project_agent_sessions]},
+    {env, []},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, [{"GitHub", "https://github.com/hecate-social/hecate-app-martha"}]}
+]}.

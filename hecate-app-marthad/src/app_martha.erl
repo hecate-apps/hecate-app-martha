@@ -13,7 +13,7 @@
 -include_lib("hecate_sdk/include/hecate_plugin.hrl").
 -include_lib("guide_division_storming/include/storming_status.hrl").
 -include_lib("guide_division_planning/include/planning_status.hrl").
--include_lib("guide_kanban_lifecycle/include/kanban_status.hrl").
+-include_lib("guide_kanban_lifecycle/include/kanban_board_status.hrl").
 -include_lib("guide_division_crafting/include/crafting_status.hrl").
 
 -export([init/1, routes/0, store_config/0, static_dir/0, manifest/0, flag_maps/0]).
@@ -22,6 +22,7 @@
     guide_venture_lifecycle, project_ventures, query_ventures,
     guide_division_planning, guide_division_storming, guide_division_crafting,
     guide_kanban_lifecycle,
+    orchestrate_agents, project_agent_sessions, query_agent_sessions,
     project_division_plannings, project_division_stormings,
     project_division_craftings, project_division_kanbans,
     query_division_plannings, query_division_stormings,
@@ -76,7 +77,7 @@ manifest() ->
     #{
         name => <<"hecate-app-martha">>,
         display_name => <<"Martha">>,
-        version => <<"0.2.4">>,
+        version => <<"0.3.0">>,
         description => <<"AI-Assisted Application Lifecycle">>,
         icon => <<"\xF0\x9F\xA7\x91\xE2\x80\x8D\xF0\x9F\x92\xBB"/utf8>>,
         tag => <<"martha-studio">>,
@@ -88,7 +89,7 @@ flag_maps() ->
     #{
         <<"storming_status">> => ?STORMING_FLAG_MAP,
         <<"planning_status">> => ?PLANNING_FLAG_MAP,
-        <<"kanban_status">> => ?KANBAN_FLAG_MAP,
+        <<"kanban_status">> => ?BOARD_FLAG_MAP,
         <<"crafting_status">> => ?CRAFTING_FLAG_MAP
     }.
 

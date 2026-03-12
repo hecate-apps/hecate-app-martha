@@ -1,6 +1,6 @@
 {application, hecate_app_marthad, [
     {description, "Hecate Martha - ALC/DevOps Agent Plugin"},
-    {vsn, "0.2.4"},
+    {vsn, "0.3.0"},
     {registered, [app_martha_sup]},
     {mod, {hecate_app_marthad_app, []}},
     {applications, [
@@ -24,6 +24,6 @@
     {modules, []},
     {licenses, ["Apache-2.0"]},
     {links, [
-        {"GitHub", "https://github.com/hecate-social/hecate-app-martha"}
+        {"GitHub", "https://github.com/hecate-apps/hecate-app-martha"}
     ]}
 ]}.

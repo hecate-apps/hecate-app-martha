@@ -20,7 +20,9 @@
     project_division_plannings, project_division_stormings,
     project_division_craftings, project_division_kanbans,
     query_division_plannings, query_division_stormings,
-    query_division_craftings, query_division_kanbans
+    query_division_craftings, query_division_kanbans,
+    orchestrate_agents,
+    query_agent_sessions
 ]).
 
 %% @doc Cowboy handler init - dispatches to domain route handlers.

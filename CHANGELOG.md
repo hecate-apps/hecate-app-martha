@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.3.0] - 2026-03-12
+
+### Added
+
+- **Agent Orchestration** (CMD + PRJ + QRY): `orchestrate_agents`, `project_agent_sessions`, `query_agent_sessions`
+  - 12 agent roles (visionary, explorer, stormer, reviewer, architect, 3 coders, tester, delivery, coordinator, mentor)
+  - HITL gate pass/reject workflow for creative-to-mechanical tier transitions
+  - Session lifecycle: initiate, run, gate, archive
+- **Agent Pipeline UI**: New `agent_orchestration/` vertical slice in frontend
+  - `AgentPipeline.svelte` — tier-grouped role cards (Creative / Mechanical / Always-On)
+  - `AgentRoleCard.svelte` — real-time status (idle, running, completed, failed, gate pending)
+  - `GateReview.svelte` — HITL gate review with notation output viewer, pass/reject
+  - `AgentSessionDetail.svelte` — session info, token usage, conversation turns
+  - "Agents" toggle in MarthaStudio venture header
+- **Kanban card operations**: `park_kanban_card`, `unpark_kanban_card`, `block_kanban_card`, `unblock_kanban_card`
+- **Kanban card bit flags**: `CARD_POSTED(1)`, `CARD_PICKED(2)`, `CARD_FINISHED(4)`, `CARD_PARKED(8)`, `CARD_BLOCKED(16)`
+- **Storm UX polish**:
+  - Sticky scatter — random rotation and jitter during Storm phase (messy post-it wall feel)
+  - AI ghost stickies — translucent dashed-border cards from Oracle with accept/dismiss
+  - Event count pulse animation on new sticky posts
+  - Phase transition opacity fade (150ms)
+
+### Changed
+
+- **Kanban restructure**: `submit_kanban_item` → `post_kanban_card`, `pick_kanban_item` → `pick_kanban_card`, `complete_kanban_item` → `finish_kanban_card`, `return_kanban_item` → `unpick_kanban_card`
+- Kanban frontend: 3-column layout → 3+2 layout (Posted/Picked/Finished + Parked/Blocked hold lanes)
+- `kanban_division.ts` — bit-flag-based grouping replaces string status matching
+- `package.sh` — updated from 9 to 18 domain apps
+- `app_martha_sup.erl` — added 8 missing supervisors (storming, kanban, agent PRJ/QRY)
+- `app_martha.erl` DOMAIN_APPS — added `orchestrate_agents`, `project_agent_sessions`, `query_agent_sessions`
+- App count: 15 → 18 (3 new agent orchestration apps)
+
+### Fixed
+
+- `.app.src` and `rebar.config` ex_doc links pointed to wrong org (`hecate-social` → `hecate-apps`)
+
 ## [0.2.4] - 2026-03-11
 
 ### Added
