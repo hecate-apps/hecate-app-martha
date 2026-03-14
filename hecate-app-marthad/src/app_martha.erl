@@ -16,6 +16,7 @@
 -include_lib("guide_division_lifecycle/include/kanban_card_status.hrl").
 
 -export([init/1, routes/0, store_config/0, static_dir/0, manifest/0, flag_maps/0]).
+-export([health/0]).
 
 %% Additional Martha stores beyond the primary martha_store.
 %% The primary store is created by the plugin loader via store_config/0.
@@ -46,6 +47,8 @@ init(#{plugin_name := PluginName, store_id := StoreId, data_dir := DataDir}) ->
         store_id => StoreId,
         data_dir => DataDir
     }),
+    %% Set plugin name for ?METRIC_* macros
+    persistent_term:put(hecate_current_plugin, PluginName),
     %% Create additional Martha stores (primary martha_store already created by loader)
     start_extra_stores(DataDir),
     %% Start store subscriptions for all Martha stores
@@ -94,7 +97,7 @@ manifest() ->
         description => <<"AI-Assisted Application Lifecycle">>,
         icon => <<"dog2">>,
         tag => <<"martha-studio">>,
-        min_sdk_version => <<"0.1.0">>
+        min_sdk_version => <<"0.4.0">>
     }.
 
 -spec flag_maps() -> #{binary() => evoq_bit_flags:flag_map()}.
@@ -107,6 +110,29 @@ flag_maps() ->
         <<"crafting_status">> => ?CRAFTING_FLAG_MAP,
         <<"card_status">> => ?CARD_FLAG_MAP
     }.
+
+-spec health() -> ok | degraded | {unhealthy, binary()}.
+health() ->
+    SupAlive = is_pid(whereis(app_martha_sup)) andalso is_process_alive(whereis(app_martha_sup)),
+    LlmAvailable = check_llm_availability(),
+    health_result(SupAlive, LlmAvailable).
+
+health_result(false, _) ->
+    {unhealthy, <<"supervision tree down">>};
+health_result(true, false) ->
+    degraded;
+health_result(true, true) ->
+    ok.
+
+check_llm_availability() ->
+    try
+        case hecate_plugin_llm:list_models() of
+            {ok, [_ | _]} -> true;
+            _ -> false
+        end
+    catch _:_ ->
+        false
+    end.
 
 %%% Internal
 

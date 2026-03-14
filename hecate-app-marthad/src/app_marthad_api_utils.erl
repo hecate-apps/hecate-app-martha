@@ -4,6 +4,8 @@
 %%% @end
 -module(app_marthad_api_utils).
 
+-include_lib("hecate_sdk/include/hecate_plugin.hrl").
+
 -export([json_response/3, json_reply/3, json_ok/2, json_ok/3, json_error/3]).
 -export([format_error/1]).
 -export([method_not_allowed/1, not_found/1, bad_request/2]).
@@ -14,6 +16,7 @@
 -spec json_response(StatusCode :: non_neg_integer(), Body :: map(), Req :: cowboy_req:req()) ->
     {ok, cowboy_req:req(), []}.
 json_response(StatusCode, Body, Req0) ->
+    ?METRIC_INC(<<"api_requests">>),
     JsonBody = json:encode(Body),
     Req = cowboy_req:reply(StatusCode, #{
         <<"content-type">> => <<"application/json">>
@@ -42,6 +45,7 @@ json_ok(StatusCode, Result, Req) ->
 -spec json_error(StatusCode :: non_neg_integer(), Reason :: term(), Req :: cowboy_req:req()) ->
     {ok, cowboy_req:req(), []}.
 json_error(StatusCode, Reason, Req) ->
+    ?METRIC_INC(<<"api_errors">>),
     json_response(StatusCode, #{ok => false, error => format_error(Reason)}, Req).
 
 %% @doc 405 Method Not Allowed.

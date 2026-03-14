@@ -34,7 +34,9 @@ aggregate_test_() ->
         {"complete blocked when awaiting input",        fun exec_complete_while_awaiting/0},
 
         %% Role dispatch (returns role_not_implemented until roles added)
-        {"initiate visionary succeeds",                 fun exec_initiate_visionary/0},
+        {"initiate visionary succeeds",
+         {setup, fun setup_llm_mock/0, fun teardown_llm_mock/1,
+          fun() -> exec_initiate_visionary() end}},
         {"initiate unknown role returns error",          fun exec_initiate_unknown_role/0},
         {"complete visionary through aggregate",         fun exec_complete_visionary/0},
         {"fail visionary through aggregate",             fun exec_fail_visionary/0},
@@ -70,6 +72,22 @@ aggregate_test_() ->
         {"role_modules returns error for unknown role", fun role_modules_unknown/0},
         {"role_modules returns visionary modules",       fun role_modules_visionary/0}
     ].
+
+%% ===================================================================
+%% Fixtures — mock daemon modules not available in plugin test context
+%% ===================================================================
+
+setup_llm_mock() ->
+    meck:new(manage_providers, [non_strict]),
+    meck:expect(manage_providers, list_all_models, fun() ->
+        {ok, [#{name => <<"test-model">>, family => <<"test">>,
+                parameter_size => <<"7B">>, context_length => 4096,
+                format => <<"api">>}]}
+    end),
+    ok.
+
+teardown_llm_mock(_) ->
+    meck:unload(manage_providers).
 
 %% ===================================================================
 %% Helpers — build states from raw event maps (no per-role modules)

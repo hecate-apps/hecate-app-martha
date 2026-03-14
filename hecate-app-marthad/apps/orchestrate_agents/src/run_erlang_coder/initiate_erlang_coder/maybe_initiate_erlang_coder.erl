@@ -55,5 +55,5 @@ dispatch(Cmd) ->
 resolve_model(Tier) ->
     case resolve_llm_model:resolve(Tier) of
         {ok, Model} -> Model;
-        {error, _} -> <<"claude-sonnet-4-20250514">>
+        {error, _} -> error({no_llm_model_for_tier, Tier})
     end.

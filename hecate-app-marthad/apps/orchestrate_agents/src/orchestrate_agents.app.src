@@ -11,13 +11,7 @@
         evoq,
         reckon_evoq
     ]},
-    {env, [
-        {tier_mapping, #{
-            <<"T1">> => <<"claude-sonnet-4-20250514">>,
-            <<"T2">> => <<"claude-sonnet-4-20250514">>,
-            <<"T3">> => <<"claude-haiku-3-20250514">>
-        }}
-    ]},
+    {env, []},
     {modules, []},
     {licenses, ["Apache-2.0"]},
     {links, [{"GitHub", "https://github.com/hecate-social/hecate-daemon"}]}
