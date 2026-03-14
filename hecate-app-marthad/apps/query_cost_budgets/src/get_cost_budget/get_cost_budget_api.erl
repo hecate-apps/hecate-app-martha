@@ -13,7 +13,7 @@ routes() ->
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"GET">> -> handle_get(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_get(Req0, _State) ->
@@ -27,15 +27,15 @@ handle_get(Req0, _State) ->
 handle_get_by_id(VentureId, Req0) ->
     case project_cost_budgets_store:get_budget(VentureId) of
         {ok, Budget} ->
-            app_marthad_api_utils:json_ok(Budget, Req0);
+            hecate_plugin_api:json_ok(Budget, Req0);
         {error, not_found} ->
-            app_marthad_api_utils:json_error(404, <<"Cost budget not found">>, Req0)
+            hecate_plugin_api:json_error(404, <<"Cost budget not found">>, Req0)
     end.
 
 handle_list(Req0) ->
     case project_cost_budgets_store:list_budgets() of
         {ok, Items} ->
-            app_marthad_api_utils:json_ok(#{items => Items}, Req0);
+            hecate_plugin_api:json_ok(#{items => Items}, Req0);
         {error, Reason} ->
-            app_marthad_api_utils:json_error(500, Reason, Req0)
+            hecate_plugin_api:json_error(500, Reason, Req0)
     end.

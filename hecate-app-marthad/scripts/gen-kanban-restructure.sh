@@ -277,12 +277,12 @@ routes() ->
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"POST">> -> handle_post(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_post(Req0, _State) ->
     DivisionId = cowboy_req:binding(division_id, Req0),
-    case app_marthad_api_utils:read_json_body(Req0) of
+    case hecate_plugin_api:read_json_body(Req0) of
         {ok, Params, Req1} ->
             CmdParams = #{
                 division_id  => DivisionId,
@@ -292,20 +292,20 @@ handle_post(Req0, _State) ->
             },
             case initiate_kanban_board_v1:new(CmdParams) of
                 {ok, Cmd} -> dispatch(Cmd, Req1);
-                {error, Reason} -> app_marthad_api_utils:bad_request(Reason, Req1)
+                {error, Reason} -> hecate_plugin_api:bad_request(Reason, Req1)
             end;
         {error, invalid_json, Req1} ->
-            app_marthad_api_utils:bad_request(<<"Invalid JSON">>, Req1)
+            hecate_plugin_api:bad_request(<<"Invalid JSON">>, Req1)
     end.
 
 dispatch(Cmd, Req) ->
     case maybe_initiate_kanban_board:dispatch(Cmd) of
         {ok, _Version, _Events} ->
-            app_marthad_api_utils:json_ok(201,
+            hecate_plugin_api:json_ok(201,
                 #{<<"division_id">> => initiate_kanban_board_v1:get_division_id(Cmd),
                   <<"status">> => <<"initiated">>}, Req);
         {error, Reason} ->
-            app_marthad_api_utils:bad_request(Reason, Req)
+            hecate_plugin_api:bad_request(Reason, Req)
     end.
 
 get_value(Key, Map) -> get_value(Key, Map, undefined).
@@ -477,7 +477,7 @@ routes() ->
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"POST">> -> handle_post(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_post(Req0, _State) ->
@@ -487,14 +487,14 @@ handle_post(Req0, _State) ->
         {ok, Cmd} ->
             case maybe_archive_kanban_board:dispatch(Cmd) of
                 {ok, _Version, _Events} ->
-                    app_marthad_api_utils:json_ok(200,
+                    hecate_plugin_api:json_ok(200,
                         #{<<"division_id">> => DivisionId,
                           <<"status">> => <<"archived">>}, Req0);
                 {error, Reason} ->
-                    app_marthad_api_utils:bad_request(Reason, Req0)
+                    hecate_plugin_api:bad_request(Reason, Req0)
             end;
         {error, Reason} ->
-            app_marthad_api_utils:bad_request(Reason, Req0)
+            hecate_plugin_api:bad_request(Reason, Req0)
     end.
 ERLANG
 }
@@ -619,7 +619,7 @@ routes() ->
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"POST">> -> handle_post(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 ${API_BODY}
@@ -821,7 +821,7 @@ EOF
     API_BODY=$(cat <<'EOF'
 handle_post(Req0, _State) ->
     DivisionId = cowboy_req:binding(division_id, Req0),
-    case app_marthad_api_utils:read_json_body(Req0) of
+    case hecate_plugin_api:read_json_body(Req0) of
         {ok, Params, Req1} ->
             CmdParams = #{
                 division_id => DivisionId,
@@ -835,17 +835,17 @@ handle_post(Req0, _State) ->
                 {ok, Cmd} ->
                     case maybe_post_kanban_card:dispatch(Cmd) of
                         {ok, _Version, _Events} ->
-                            app_marthad_api_utils:json_ok(201,
+                            hecate_plugin_api:json_ok(201,
                                 #{<<"card_id">> => post_kanban_card_v1:get_card_id(Cmd),
                                   <<"status">> => <<"posted">>}, Req1);
                         {error, Reason} ->
-                            app_marthad_api_utils:bad_request(Reason, Req1)
+                            hecate_plugin_api:bad_request(Reason, Req1)
                     end;
                 {error, Reason} ->
-                    app_marthad_api_utils:bad_request(Reason, Req1)
+                    hecate_plugin_api:bad_request(Reason, Req1)
             end;
         {error, invalid_json, Req1} ->
-            app_marthad_api_utils:bad_request(<<"Invalid JSON">>, Req1)
+            hecate_plugin_api:bad_request(<<"Invalid JSON">>, Req1)
     end.
 EOF
 )
@@ -1195,19 +1195,19 @@ ${HANDLER_EVT_FIELDS}
         {ok, Cmd} ->
             case ${HANDLER}:dispatch(Cmd) of
                 {ok, _Version, _Events} ->
-                    app_marthad_api_utils:json_ok(200,
+                    hecate_plugin_api:json_ok(200,
                         #{<<\"card_id\">> => CardId, <<\"status\">> => <<\"ok\">>}, Req0);
                 {error, Reason} ->
-                    app_marthad_api_utils:bad_request(Reason, Req0)
+                    hecate_plugin_api:bad_request(Reason, Req0)
             end;
         {error, Reason} ->
-            app_marthad_api_utils:bad_request(Reason, Req0)
+            hecate_plugin_api:bad_request(Reason, Req0)
     end."
     else
         API_BODY="handle_post(Req0, _State) ->
     DivisionId = cowboy_req:binding(division_id, Req0),
     CardId = cowboy_req:binding(card_id, Req0),
-    case app_marthad_api_utils:read_json_body(Req0) of
+    case hecate_plugin_api:read_json_body(Req0) of
         {ok, Params, Req1} ->
             CmdParams = #{
 ${API_CMD_FIELDS}
@@ -1216,16 +1216,16 @@ ${API_CMD_FIELDS}
                 {ok, Cmd} ->
                     case ${HANDLER}:dispatch(Cmd) of
                         {ok, _Version, _Events} ->
-                            app_marthad_api_utils:json_ok(200,
+                            hecate_plugin_api:json_ok(200,
                                 #{<<\"card_id\">> => CardId, <<\"status\">> => <<\"ok\">>}, Req1);
                         {error, Reason} ->
-                            app_marthad_api_utils:bad_request(Reason, Req1)
+                            hecate_plugin_api:bad_request(Reason, Req1)
                     end;
                 {error, Reason} ->
-                    app_marthad_api_utils:bad_request(Reason, Req1)
+                    hecate_plugin_api:bad_request(Reason, Req1)
             end;
         {error, invalid_json, Req1} ->
-            app_marthad_api_utils:bad_request(<<\"Invalid JSON\">>, Req1)
+            hecate_plugin_api:bad_request(<<\"Invalid JSON\">>, Req1)
     end."
     fi
 

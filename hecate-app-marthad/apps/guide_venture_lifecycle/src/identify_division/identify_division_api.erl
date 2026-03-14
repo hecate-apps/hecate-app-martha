@@ -11,7 +11,7 @@ routes() -> [{"/api/ventures/:venture_id/discovery/identify", ?MODULE, []}].
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"POST">> -> handle_post(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_post(Req0, _State) ->
@@ -21,9 +21,9 @@ handle_post(Req0, _State) ->
     ContextName = maps:get(<<"context_name">>, Params, undefined),
     case ContextName of
         undefined ->
-            app_marthad_api_utils:json_error(400, <<"context_name is required">>, Req1);
+            hecate_plugin_api:json_error(400, <<"context_name is required">>, Req1);
         <<>> ->
-            app_marthad_api_utils:json_error(400, <<"context_name cannot be empty">>, Req1);
+            hecate_plugin_api:json_error(400, <<"context_name cannot be empty">>, Req1);
         _ ->
             Description = maps:get(<<"description">>, Params, undefined),
             IdentifiedBy = maps:get(<<"identified_by">>, Params, undefined),
@@ -44,12 +44,12 @@ handle_post(Req0, _State) ->
                                 version => Version,
                                 events => Events
                             },
-                            app_marthad_api_utils:json_reply(201, Body2, Req1);
+                            hecate_plugin_api:json_reply(201, Body2, Req1);
                         {error, Reason} ->
-                            app_marthad_api_utils:json_error(422, Reason, Req1)
+                            hecate_plugin_api:json_error(422, Reason, Req1)
                     end;
                 {error, Reason} ->
-                    app_marthad_api_utils:json_error(400, Reason, Req1)
+                    hecate_plugin_api:json_error(400, Reason, Req1)
             end
     end.
 

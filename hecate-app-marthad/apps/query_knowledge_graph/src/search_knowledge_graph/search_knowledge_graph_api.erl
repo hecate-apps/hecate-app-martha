@@ -7,7 +7,7 @@ routes() -> [{"/api/knowledge-graph/:venture_id/search", ?MODULE, []}].
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"GET">> -> handle_get(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_get(Req0, _State) ->
@@ -15,10 +15,10 @@ handle_get(Req0, _State) ->
     #{q := Query} = cowboy_req:match_qs([{q, [], <<>>}], Req0),
     case Query of
         <<>> ->
-            app_marthad_api_utils:bad_request(<<"q parameter is required">>, Req0);
+            hecate_plugin_api:bad_request(<<"q parameter is required">>, Req0);
         _ ->
             case project_knowledge_graph_store:search_entities(VentureId, Query) of
                 {ok, Results} ->
-                    app_marthad_api_utils:json_ok(#{results => Results}, Req0)
+                    hecate_plugin_api:json_ok(#{results => Results}, Req0)
             end
     end.

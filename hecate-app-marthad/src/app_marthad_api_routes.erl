@@ -36,7 +36,7 @@ init(Req0, _State) ->
         {ok, Handler, HandlerState} ->
             Handler:init(Req0, HandlerState);
         nomatch ->
-            app_marthad_api_utils:not_found(Req0)
+            hecate_plugin_api:not_found(Req0)
     end.
 
 %% @doc Compile all routes into a Cowboy dispatch table.

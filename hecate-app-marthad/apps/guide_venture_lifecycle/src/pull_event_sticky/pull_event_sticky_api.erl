@@ -11,7 +11,7 @@ routes() -> [{"/api/ventures/:venture_id/storm/sticky/:sticky_id/pull", ?MODULE,
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"POST">> -> handle_post(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_post(Req0, _State) ->
@@ -28,10 +28,10 @@ handle_post(Req0, _State) ->
                         venture_id => VentureId,
                         sticky_id => StickyId
                     },
-                    app_marthad_api_utils:json_reply(200, Body, Req0);
+                    hecate_plugin_api:json_reply(200, Body, Req0);
                 {error, Reason} ->
-                    app_marthad_api_utils:json_error(422, Reason, Req0)
+                    hecate_plugin_api:json_error(422, Reason, Req0)
             end;
         {error, Reason} ->
-            app_marthad_api_utils:json_error(400, Reason, Req0)
+            hecate_plugin_api:json_error(400, Reason, Req0)
     end.

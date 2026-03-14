@@ -13,9 +13,9 @@ init(_Config) -> {ok, #{}}.
 
 handle_event(_EventType, Event, _Metadata, State) ->
     Data = maps:get(data, Event),
-    VentureId = app_marthad_api_utils:get_field(venture_id, Data),
-    SpentUsd = app_marthad_api_utils:get_field(spent_usd, Data),
-    BudgetUsd = app_marthad_api_utils:get_field(budget_usd, Data),
+    VentureId = hecate_plugin_api:get_field(venture_id, Data),
+    SpentUsd = hecate_plugin_api:get_field(spent_usd, Data),
+    BudgetUsd = hecate_plugin_api:get_field(budget_usd, Data),
 
     logger:warning("[BUDGET BREACHED] Venture ~s spent $~.2f / $~.2f budget",
                     [VentureId, to_float(SpentUsd), to_float(BudgetUsd)]),

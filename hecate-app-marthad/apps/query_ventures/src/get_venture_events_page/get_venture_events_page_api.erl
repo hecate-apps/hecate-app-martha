@@ -7,7 +7,7 @@ routes() -> [{"/api/ventures/:venture_id/events", ?MODULE, []}].
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"GET">> -> handle_get(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_get(Req0, _State) ->
@@ -17,9 +17,9 @@ handle_get(Req0, _State) ->
     Limit = parse_int(proplists:get_value(<<"limit">>, QsVals, <<"50">>), 50),
     case get_venture_events_page:get(VentureId, Offset, Limit) of
         {ok, Result} ->
-            app_marthad_api_utils:json_ok(Result, Req0);
+            hecate_plugin_api:json_ok(Result, Req0);
         {error, Reason} ->
-            app_marthad_api_utils:json_error(500, Reason, Req0)
+            hecate_plugin_api:json_error(500, Reason, Req0)
     end.
 
 parse_int(Bin, Default) when is_binary(Bin) ->

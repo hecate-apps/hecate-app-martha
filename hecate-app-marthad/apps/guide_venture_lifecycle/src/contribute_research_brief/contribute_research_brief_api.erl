@@ -10,14 +10,14 @@ routes() -> [{"/api/ventures/:venture_id/knowledge/brief", ?MODULE, []}].
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"POST">> -> handle_post(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_post(Req0, _State) ->
     VentureId = cowboy_req:binding(venture_id, Req0),
     case VentureId of
         undefined ->
-            app_marthad_api_utils:bad_request(<<"venture_id is required">>, Req0);
+            hecate_plugin_api:bad_request(<<"venture_id is required">>, Req0);
         _ ->
             {ok, Body, Req1} = cowboy_req:read_body(Req0),
             Parsed = json:decode(Body),
@@ -33,17 +33,17 @@ do_contribute(VentureId, Parsed, Req) ->
     },
     case contribute_research_brief_v1:new(CmdParams) of
         {ok, Cmd} -> dispatch(Cmd, VentureId, Req);
-        {error, Reason} -> app_marthad_api_utils:bad_request(Reason, Req)
+        {error, Reason} -> hecate_plugin_api:bad_request(Reason, Req)
     end.
 
 dispatch(Cmd, VentureId, Req) ->
     case maybe_contribute_research_brief:dispatch(Cmd) of
         {ok, _Version, EventMaps} ->
-            app_marthad_api_utils:json_ok(200, #{
+            hecate_plugin_api:json_ok(200, #{
                 venture_id => VentureId,
                 contributed => true,
                 events => EventMaps
             }, Req);
         {error, Reason} ->
-            app_marthad_api_utils:bad_request(Reason, Req)
+            hecate_plugin_api:bad_request(Reason, Req)
     end.

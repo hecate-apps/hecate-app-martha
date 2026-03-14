@@ -67,4 +67,4 @@ apply(State, Event) ->
 
 %% --- Internal ---
 
-gf(Key, Map) -> app_marthad_api_utils:get_field(Key, Map).
+gf(Key, Map) -> hecate_plugin_api:get_field(Key, Map).

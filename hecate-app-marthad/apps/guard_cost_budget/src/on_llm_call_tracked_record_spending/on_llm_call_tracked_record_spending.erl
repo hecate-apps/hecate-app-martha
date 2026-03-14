@@ -13,10 +13,10 @@ init(_Config) -> {ok, #{}}.
 
 handle_event(_EventType, Event, _Metadata, State) ->
     Data = maps:get(data, Event),
-    VentureId = app_marthad_api_utils:get_field(venture_id, Data),
-    CostUsd = app_marthad_api_utils:get_field(cost_usd, Data),
-    Model = app_marthad_api_utils:get_field(model, Data),
-    CallId = app_marthad_api_utils:get_field(call_id, Data),
+    VentureId = hecate_plugin_api:get_field(venture_id, Data),
+    CostUsd = hecate_plugin_api:get_field(cost_usd, Data),
+    Model = hecate_plugin_api:get_field(model, Data),
+    CallId = hecate_plugin_api:get_field(call_id, Data),
 
     %% Only record if cost is positive and venture is set
     case is_binary(VentureId) andalso VentureId =/= <<>> andalso

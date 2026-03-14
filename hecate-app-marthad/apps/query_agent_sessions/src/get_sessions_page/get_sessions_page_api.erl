@@ -6,7 +6,7 @@ routes() -> [{"/api/agents/sessions", ?MODULE, []}].
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"GET">> -> handle_get(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_get(Req0, _State) ->
@@ -14,9 +14,9 @@ handle_get(Req0, _State) ->
     Filters = build_filters(QS, #{}),
     case get_sessions_page:get(Filters) of
         {ok, Sessions} ->
-            app_marthad_api_utils:json_ok(#{sessions => Sessions}, Req0);
+            hecate_plugin_api:json_ok(#{sessions => Sessions}, Req0);
         {error, Reason} ->
-            app_marthad_api_utils:json_error(500, Reason, Req0)
+            hecate_plugin_api:json_error(500, Reason, Req0)
     end.
 
 build_filters(QS, Acc) ->

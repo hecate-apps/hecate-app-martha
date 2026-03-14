@@ -6,7 +6,7 @@ routes() -> [{"/api/agents/sessions/:session_id/turns", ?MODULE, []}].
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"GET">> -> handle_get(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_get(Req0, _State) ->
@@ -17,7 +17,7 @@ handle_get(Req0, _State) ->
             {ok, Turns} = get_session_turns:get(SessionId),
             TokenSummary = project_agent_sessions_store:total_tokens_by_session(SessionId),
             {TotalIn, TotalOut} = TokenSummary,
-            app_marthad_api_utils:json_ok(#{
+            hecate_plugin_api:json_ok(#{
                 turns => Turns,
                 total_turns => length(Turns),
                 tokens_in => TotalIn,
@@ -28,11 +28,11 @@ handle_get(Req0, _State) ->
                 TurnNum when is_integer(TurnNum) ->
                     case get_session_turns:get(SessionId, TurnNum) of
                         {ok, Turn} ->
-                            app_marthad_api_utils:json_ok(#{turn => Turn}, Req0);
+                            hecate_plugin_api:json_ok(#{turn => Turn}, Req0);
                         {error, not_found} ->
-                            app_marthad_api_utils:json_error(404, <<"Turn not found">>, Req0)
+                            hecate_plugin_api:json_error(404, <<"Turn not found">>, Req0)
                     end;
                 _ ->
-                    app_marthad_api_utils:json_error(400, <<"Invalid turn number">>, Req0)
+                    hecate_plugin_api:json_error(400, <<"Invalid turn number">>, Req0)
             end
     end.

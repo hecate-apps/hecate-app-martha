@@ -7,12 +7,12 @@ routes() -> [{"/api/knowledge-graph/:venture_id/entities", ?MODULE, []}].
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"GET">> -> handle_get(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_get(Req0, _State) ->
     VentureId = cowboy_req:binding(venture_id, Req0),
     case project_knowledge_graph_store:get_entities(VentureId) of
         {ok, Entities} ->
-            app_marthad_api_utils:json_ok(#{entities => Entities}, Req0)
+            hecate_plugin_api:json_ok(#{entities => Entities}, Req0)
     end.

@@ -11,7 +11,7 @@ routes() ->
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"GET">> -> handle_get(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_get(Req0, State) ->
@@ -19,13 +19,13 @@ handle_get(Req0, State) ->
     case project_knowledge_graph_store:get_graph(VentureId) of
         {ok, Graph} ->
             Narrative = build_narrative(VentureId, Graph),
-            Resp = app_marthad_api_utils:json_ok(#{
+            Resp = hecate_plugin_api:json_ok(#{
                 venture_id => VentureId,
                 narrative => Narrative
             }, Req0),
             {ok, Resp, State};
         {error, not_found} ->
-            Resp = app_marthad_api_utils:json_error(404, <<"Venture not found">>, Req0),
+            Resp = hecate_plugin_api:json_error(404, <<"Venture not found">>, Req0),
             {ok, Resp, State}
     end.
 

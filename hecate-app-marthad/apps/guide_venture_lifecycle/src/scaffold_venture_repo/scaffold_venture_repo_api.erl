@@ -17,23 +17,23 @@ routes() -> [{"/api/ventures/:venture_id/scaffold", ?MODULE, []}].
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"POST">> -> handle_post(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_post(Req0, _State) ->
-    case app_marthad_api_utils:read_json_body(Req0) of
+    case hecate_plugin_api:read_json_body(Req0) of
         {ok, Params, Req1} ->
             VentureId = cowboy_req:binding(venture_id, Req1),
             do_scaffold(VentureId, Params, Req1);
         {error, invalid_json, Req1} ->
-            app_marthad_api_utils:bad_request(<<"Invalid JSON">>, Req1)
+            hecate_plugin_api:bad_request(<<"Invalid JSON">>, Req1)
     end.
 
 do_scaffold(VentureId, Params, Req) ->
-    RepoPath = app_marthad_api_utils:get_field(repo_path, Params),
-    VisionContent = app_marthad_api_utils:get_field(vision_content, Params),
-    VentureName = app_marthad_api_utils:get_field(venture_name, Params),
-    Brief = app_marthad_api_utils:get_field(brief, Params),
+    RepoPath = hecate_plugin_api:get_field(repo_path, Params),
+    VisionContent = hecate_plugin_api:get_field(vision_content, Params),
+    VentureName = hecate_plugin_api:get_field(venture_name, Params),
+    Brief = hecate_plugin_api:get_field(brief, Params),
 
     case validate(RepoPath) of
         ok ->
@@ -41,10 +41,10 @@ do_scaffold(VentureId, Params, Req) ->
                 ok ->
                     dispatch_event(VentureId, RepoPath, Brief, Req);
                 {error, Reason} ->
-                    app_marthad_api_utils:bad_request(Reason, Req)
+                    hecate_plugin_api:bad_request(Reason, Req)
             end;
         {error, Reason} ->
-            app_marthad_api_utils:bad_request(Reason, Req)
+            hecate_plugin_api:bad_request(Reason, Req)
     end.
 
 validate(undefined) -> {error, <<"repo_path is required">>};
@@ -122,17 +122,17 @@ dispatch_event(VentureId, RepoPath, Brief, Req) ->
         {ok, Cmd} ->
             case maybe_scaffold_venture_repo:dispatch(Cmd) of
                 {ok, Version, EventMaps} ->
-                    app_marthad_api_utils:json_ok(200, #{
+                    hecate_plugin_api:json_ok(200, #{
                         <<"ok">> => true,
                         <<"repo_path">> => expand_path(RepoPath),
                         <<"version">> => Version,
                         <<"events">> => EventMaps
                     }, Req);
                 {error, Reason} ->
-                    app_marthad_api_utils:bad_request(Reason, Req)
+                    hecate_plugin_api:bad_request(Reason, Req)
             end;
         {error, Reason} ->
-            app_marthad_api_utils:bad_request(Reason, Req)
+            hecate_plugin_api:bad_request(Reason, Req)
     end.
 
 %% Helpers

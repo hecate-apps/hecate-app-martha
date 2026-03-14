@@ -142,4 +142,4 @@ project_adjusted(Data, State, RM) ->
 get_event_type(#{event_type := T}) -> T;
 get_event_type(_) -> undefined.
 
-gf(Key, Data) -> app_marthad_api_utils:get_field(Key, Data).
+gf(Key, Data) -> hecate_plugin_api:get_field(Key, Data).

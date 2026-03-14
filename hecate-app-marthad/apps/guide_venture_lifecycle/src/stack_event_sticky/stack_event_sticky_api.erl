@@ -11,7 +11,7 @@ routes() -> [{"/api/ventures/:venture_id/storm/sticky/:sticky_id/stack", ?MODULE
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"POST">> -> handle_post(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_post(Req0, _State) ->
@@ -22,9 +22,9 @@ handle_post(Req0, _State) ->
     TargetStickyId = maps:get(<<"target_sticky_id">>, Params, undefined),
     case TargetStickyId of
         undefined ->
-            app_marthad_api_utils:json_error(400, <<"target_sticky_id is required">>, Req1);
+            hecate_plugin_api:json_error(400, <<"target_sticky_id is required">>, Req1);
         <<>> ->
-            app_marthad_api_utils:json_error(400, <<"target_sticky_id cannot be empty">>, Req1);
+            hecate_plugin_api:json_error(400, <<"target_sticky_id cannot be empty">>, Req1);
         _ ->
             case stack_event_sticky_v1:new(#{
                 venture_id => VentureId,
@@ -40,11 +40,11 @@ handle_post(Req0, _State) ->
                                 target_sticky_id => TargetStickyId,
                                 events => Events
                             },
-                            app_marthad_api_utils:json_reply(201, Body2, Req1);
+                            hecate_plugin_api:json_reply(201, Body2, Req1);
                         {error, Reason} ->
-                            app_marthad_api_utils:json_error(422, Reason, Req1)
+                            hecate_plugin_api:json_error(422, Reason, Req1)
                     end;
                 {error, Reason} ->
-                    app_marthad_api_utils:json_error(400, Reason, Req1)
+                    hecate_plugin_api:json_error(400, Reason, Req1)
             end
     end.

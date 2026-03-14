@@ -6,7 +6,7 @@ routes() -> [{"/api/divisions", ?MODULE, []}].
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"GET">> -> handle_get(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_get(Req0, _State) ->
@@ -15,9 +15,9 @@ handle_get(Req0, _State) ->
     Offset = qs_int(<<"offset">>, QsVals, 0),
     case get_divisions_page:get(Limit, Offset) of
         {ok, Divisions} ->
-            app_marthad_api_utils:json_ok(#{divisions => Divisions, limit => Limit, offset => Offset}, Req0);
+            hecate_plugin_api:json_ok(#{divisions => Divisions, limit => Limit, offset => Offset}, Req0);
         {error, Reason} ->
-            app_marthad_api_utils:json_error(500, Reason, Req0)
+            hecate_plugin_api:json_error(500, Reason, Req0)
     end.
 
 qs_int(Key, QsVals, Default) ->

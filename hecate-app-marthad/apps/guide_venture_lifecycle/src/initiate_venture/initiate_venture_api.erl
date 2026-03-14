@@ -14,25 +14,25 @@ routes() -> [{"/api/ventures/initiate", ?MODULE, []}].
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"POST">> -> handle_post(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_post(Req0, _State) ->
-    case app_marthad_api_utils:read_json_body(Req0) of
+    case hecate_plugin_api:read_json_body(Req0) of
         {ok, Params, Req1} ->
             do_initiate(Params, Req1);
         {error, invalid_json, Req1} ->
-            app_marthad_api_utils:bad_request(<<"Invalid JSON">>, Req1)
+            hecate_plugin_api:bad_request(<<"Invalid JSON">>, Req1)
     end.
 
 do_initiate(Params, Req) ->
-    Name = app_marthad_api_utils:get_field(name, Params),
-    Brief = app_marthad_api_utils:get_field(brief, Params),
-    InitiatedBy = app_marthad_api_utils:get_field(initiated_by, Params),
+    Name = hecate_plugin_api:get_field(name, Params),
+    Brief = hecate_plugin_api:get_field(brief, Params),
+    InitiatedBy = hecate_plugin_api:get_field(initiated_by, Params),
 
     case validate(Name) of
         ok -> create_venture(Name, Brief, InitiatedBy, Req);
-        {error, Reason} -> app_marthad_api_utils:bad_request(Reason, Req)
+        {error, Reason} -> hecate_plugin_api:bad_request(Reason, Req)
     end.
 
 validate(undefined) -> {error, <<"name is required">>};
@@ -44,7 +44,7 @@ create_venture(Name, Brief, InitiatedBy, Req) ->
     CmdParams = #{name => Name, brief => Brief, initiated_by => InitiatedBy},
     case initiate_venture_v1:new(CmdParams) of
         {ok, Cmd} -> dispatch(Cmd, Req);
-        {error, Reason} -> app_marthad_api_utils:bad_request(Reason, Req)
+        {error, Reason} -> hecate_plugin_api:bad_request(Reason, Req)
     end.
 
 dispatch(Cmd, Req) ->
@@ -54,7 +54,7 @@ dispatch(Cmd, Req) ->
             VentureId = initiate_venture_v1:get_venture_id(Cmd),
             Status = evoq_bit_flags:set(0, ?VL_INITIATED),
             StatusLabel = evoq_bit_flags:to_string(Status, ?VL_FLAG_MAP),
-            app_marthad_api_utils:json_ok(201, #{
+            hecate_plugin_api:json_ok(201, #{
                 venture_id => VentureId,
                 name => initiate_venture_v1:get_name(Cmd),
                 brief => initiate_venture_v1:get_brief(Cmd),
@@ -66,5 +66,5 @@ dispatch(Cmd, Req) ->
                 events => EventMaps
             }, Req);
         {error, Reason} ->
-            app_marthad_api_utils:bad_request(Reason, Req)
+            hecate_plugin_api:bad_request(Reason, Req)
     end.

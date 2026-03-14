@@ -12,28 +12,28 @@ routes() -> [{"/api/ventures/:venture_id/vision/refine", ?MODULE, []}].
 init(Req0, State) ->
     case cowboy_req:method(Req0) of
         <<"POST">> -> handle_post(Req0, State);
-        _ -> app_marthad_api_utils:method_not_allowed(Req0)
+        _ -> hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 handle_post(Req0, _State) ->
     VentureId = cowboy_req:binding(venture_id, Req0),
     case VentureId of
         undefined ->
-            app_marthad_api_utils:bad_request(<<"venture_id is required">>, Req0);
+            hecate_plugin_api:bad_request(<<"venture_id is required">>, Req0);
         _ ->
-            case app_marthad_api_utils:read_json_body(Req0) of
+            case hecate_plugin_api:read_json_body(Req0) of
                 {ok, Params, Req1} ->
                     do_refine(VentureId, Params, Req1);
                 {error, invalid_json, Req1} ->
-                    app_marthad_api_utils:bad_request(<<"Invalid JSON">>, Req1)
+                    hecate_plugin_api:bad_request(<<"Invalid JSON">>, Req1)
             end
     end.
 
 do_refine(VentureId, Params, Req) ->
-    Brief = app_marthad_api_utils:get_field(brief, Params),
-    Repos = app_marthad_api_utils:get_field(repos, Params),
-    Skills = app_marthad_api_utils:get_field(skills, Params),
-    ContextMap = app_marthad_api_utils:get_field(context_map, Params),
+    Brief = hecate_plugin_api:get_field(brief, Params),
+    Repos = hecate_plugin_api:get_field(repos, Params),
+    Skills = hecate_plugin_api:get_field(skills, Params),
+    ContextMap = hecate_plugin_api:get_field(context_map, Params),
 
     CmdParams = #{
         venture_id => VentureId,
@@ -44,17 +44,17 @@ do_refine(VentureId, Params, Req) ->
     },
     case refine_vision_v1:new(CmdParams) of
         {ok, Cmd} -> dispatch(Cmd, VentureId, Req);
-        {error, Reason} -> app_marthad_api_utils:bad_request(Reason, Req)
+        {error, Reason} -> hecate_plugin_api:bad_request(Reason, Req)
     end.
 
 dispatch(Cmd, VentureId, Req) ->
     case maybe_refine_vision:dispatch(Cmd) of
         {ok, _Version, EventMaps} ->
-            app_marthad_api_utils:json_ok(200, #{
+            hecate_plugin_api:json_ok(200, #{
                 venture_id => VentureId,
                 refined => true,
                 events => EventMaps
             }, Req);
         {error, Reason} ->
-            app_marthad_api_utils:bad_request(Reason, Req)
+            hecate_plugin_api:bad_request(Reason, Req)
     end.

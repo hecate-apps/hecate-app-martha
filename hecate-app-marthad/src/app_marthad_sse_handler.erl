@@ -23,7 +23,7 @@ init(Req0, State) ->
         <<"GET">> ->
             start_stream(Req0, State);
         _ ->
-            app_marthad_api_utils:json_error(Req0, 405, <<"method_not_allowed">>)
+            hecate_plugin_api:method_not_allowed(Req0)
     end.
 
 start_stream(Req0, _State) ->
