@@ -32,10 +32,14 @@ MANIFEST="$REPO_ROOT/manifest.json"
 sed -i "s/\"version\": \"[0-9]*\.[0-9]*\.[0-9]*\"/\"version\": \"$NEW_VERSION\"/" "$MANIFEST"
 echo "  Updated $MANIFEST"
 
-# 2. app.src — {vsn, "X.Y.Z"}
+# 2. app.src files — {vsn, "X.Y.Z"}
 APP_SRC="$REPO_ROOT/hecate-app-marthad/src/hecate_app_marthad.app.src"
 sed -i "s/{vsn, \"[0-9]*\.[0-9]*\.[0-9]*\"}/{vsn, \"$NEW_VERSION\"}/" "$APP_SRC"
 echo "  Updated $APP_SRC"
+
+MARTHA_APP_SRC="$REPO_ROOT/hecate-app-marthad/apps/martha/src/martha.app.src"
+sed -i "s/{vsn, \"[0-9]*\.[0-9]*\.[0-9]*\"}/{vsn, \"$NEW_VERSION\"}/" "$MARTHA_APP_SRC"
+echo "  Updated $MARTHA_APP_SRC"
 
 # 3. app_martha.erl — version => <<"X.Y.Z">> (only the version key, not min_sdk_version)
 APP_MARTHA="$REPO_ROOT/hecate-app-marthad/src/app_martha.erl"

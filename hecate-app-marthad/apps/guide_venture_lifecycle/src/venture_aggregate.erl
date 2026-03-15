@@ -44,7 +44,7 @@ init(AggregateId) ->
 %% Fresh aggregate — only initiate allowed
 execute(#venture_state{status = 0}, Payload) ->
     case get_command_type(Payload) of
-        <<"initiate_venture">> -> execute_initiate_venture(Payload);
+        <<"initiate_venture_v1">> -> execute_initiate_venture(Payload);
         _ -> {error, venture_not_initiated}
     end;
 
@@ -55,37 +55,37 @@ execute(#venture_state{status = S}, _Payload) when S band ?VL_ARCHIVED =/= 0 ->
 %% Initiated and not archived — route by command type
 execute(#venture_state{status = S} = State, Payload) when S band ?VL_INITIATED =/= 0 ->
     case get_command_type(Payload) of
-        <<"refine_vision">>      -> execute_refine_vision(Payload, State);
-        <<"submit_vision">>      -> execute_submit_vision(Payload, State);
-        <<"prepare_venture_knowledge">>    -> execute_prepare_knowledge(Payload, State);
-        <<"contribute_research_brief">>    -> execute_contribute_brief(Payload, State);
-        <<"complete_venture_preparation">> -> execute_complete_preparation(Payload, State);
-        <<"start_discovery">>    -> execute_start_discovery(Payload, State);
-        <<"identify_division">>  -> execute_identify_division(Payload, State);
-        <<"pause_discovery">>    -> execute_pause_discovery(Payload, State);
-        <<"resume_discovery">>   -> execute_resume_discovery(Payload, State);
-        <<"complete_discovery">> -> execute_complete_discovery(Payload, State);
-        <<"archive_venture">>    -> execute_archive_venture(Payload, State);
+        <<"refine_vision_v1">>      -> execute_refine_vision(Payload, State);
+        <<"submit_vision_v1">>      -> execute_submit_vision(Payload, State);
+        <<"prepare_venture_knowledge_v1">>    -> execute_prepare_knowledge(Payload, State);
+        <<"contribute_research_brief_v1">>    -> execute_contribute_brief(Payload, State);
+        <<"complete_venture_preparation_v1">> -> execute_complete_preparation(Payload, State);
+        <<"start_discovery_v1">>    -> execute_start_discovery(Payload, State);
+        <<"identify_division_v1">>  -> execute_identify_division(Payload, State);
+        <<"pause_discovery_v1">>    -> execute_pause_discovery(Payload, State);
+        <<"resume_discovery_v1">>   -> execute_resume_discovery(Payload, State);
+        <<"complete_discovery_v1">> -> execute_complete_discovery(Payload, State);
+        <<"archive_venture_v1">>    -> execute_archive_venture(Payload, State);
         %% Scaffold
-        <<"scaffold_venture_repo">> -> execute_scaffold_venture_repo(Payload, State);
+        <<"scaffold_venture_repo_v1">> -> execute_scaffold_venture_repo(Payload, State);
         %% Big Picture Event Storming
-        <<"start_big_picture_storm">>   -> execute_start_storm(Payload, State);
-        <<"post_event_sticky">>         -> execute_post_sticky(Payload, State);
-        <<"pull_event_sticky">>         -> execute_pull_sticky(Payload, State);
-        <<"stack_event_sticky">>        -> execute_stack_sticky(Payload, State);
-        <<"unstack_event_sticky">>      -> execute_unstack_sticky(Payload, State);
-        <<"groom_event_stack">>         -> execute_groom_stack(Payload, State);
-        <<"cluster_event_sticky">>      -> execute_cluster_sticky(Payload, State);
-        <<"uncluster_event_sticky">>    -> execute_uncluster_sticky(Payload, State);
-        <<"dissolve_event_cluster">>    -> execute_dissolve_cluster(Payload, State);
-        <<"name_event_cluster">>        -> execute_name_cluster(Payload, State);
-        <<"draw_fact_arrow">>           -> execute_draw_arrow(Payload, State);
-        <<"erase_fact_arrow">>          -> execute_erase_arrow(Payload, State);
-        <<"promote_event_cluster">>     -> execute_promote_cluster(Payload, State);
-        <<"advance_storm_phase">>       -> execute_advance_phase(Payload, State);
-        <<"shelve_big_picture_storm">>  -> execute_shelve_storm(Payload, State);
-        <<"resume_big_picture_storm">>  -> execute_resume_storm(Payload, State);
-        <<"archive_big_picture_storm">> -> execute_archive_storm(Payload, State);
+        <<"start_big_picture_storm_v1">>   -> execute_start_storm(Payload, State);
+        <<"post_event_sticky_v1">>         -> execute_post_sticky(Payload, State);
+        <<"pull_event_sticky_v1">>         -> execute_pull_sticky(Payload, State);
+        <<"stack_event_sticky_v1">>        -> execute_stack_sticky(Payload, State);
+        <<"unstack_event_sticky_v1">>      -> execute_unstack_sticky(Payload, State);
+        <<"groom_event_stack_v1">>         -> execute_groom_stack(Payload, State);
+        <<"cluster_event_sticky_v1">>      -> execute_cluster_sticky(Payload, State);
+        <<"uncluster_event_sticky_v1">>    -> execute_uncluster_sticky(Payload, State);
+        <<"dissolve_event_cluster_v1">>    -> execute_dissolve_cluster(Payload, State);
+        <<"name_event_cluster_v1">>        -> execute_name_cluster(Payload, State);
+        <<"draw_fact_arrow_v1">>           -> execute_draw_arrow(Payload, State);
+        <<"erase_fact_arrow_v1">>          -> execute_erase_arrow(Payload, State);
+        <<"promote_event_cluster_v1">>     -> execute_promote_cluster(Payload, State);
+        <<"advance_storm_phase_v1">>       -> execute_advance_phase(Payload, State);
+        <<"shelve_big_picture_storm_v1">>  -> execute_shelve_storm(Payload, State);
+        <<"resume_big_picture_storm_v1">>  -> execute_resume_storm(Payload, State);
+        <<"archive_big_picture_storm_v1">> -> execute_archive_storm(Payload, State);
         _ -> {error, unknown_command}
     end;
 

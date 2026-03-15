@@ -46,7 +46,7 @@ init(AggregateId) ->
 %% Fresh aggregate — only initiate allowed
 execute(#division_state{status = 0}, Payload) ->
     case get_command_type(Payload) of
-        <<"initiate_division">> -> execute_initiate_division(Payload);
+        <<"initiate_division_v1">> -> execute_initiate_division(Payload);
         _ -> {error, division_not_initiated}
     end;
 
@@ -58,40 +58,40 @@ execute(#division_state{status = S}, _Payload) when S band ?DIV_ARCHIVED =/= 0 -
 execute(#division_state{status = S} = State, Payload) when S band ?DIV_INITIATED =/= 0 ->
     case get_command_type(Payload) of
         %% Division-level lifecycle
-        <<"archive_division">>  -> execute_archive_division(Payload);
+        <<"archive_division_v1">>  -> execute_archive_division(Payload);
 
         %% === STORMING COMMANDS ===
-        <<"design_aggregate">>  -> require_storming_active(State, fun() -> execute_design_aggregate(Payload, State) end);
-        <<"design_event">>      -> require_storming_active(State, fun() -> execute_design_event(Payload, State) end);
-        <<"plan_desk">>         -> require_storming_active(State, fun() -> execute_plan_desk(Payload, State) end);
-        <<"plan_dependency">>   -> require_storming_active(State, fun() -> execute_plan_dependency(Payload, State) end);
+        <<"design_aggregate_v1">>  -> require_storming_active(State, fun() -> execute_design_aggregate(Payload, State) end);
+        <<"design_event_v1">>      -> require_storming_active(State, fun() -> execute_design_event(Payload, State) end);
+        <<"plan_desk_v1">>         -> require_storming_active(State, fun() -> execute_plan_desk(Payload, State) end);
+        <<"plan_dependency_v1">>   -> require_storming_active(State, fun() -> execute_plan_dependency(Payload, State) end);
 
         %% === PLANNING COMMANDS ===
-        <<"open_planning">>     -> execute_open_planning(Payload, State);
-        <<"shelve_planning">>   -> execute_shelve_planning(Payload, State);
-        <<"resume_planning">>   -> execute_resume_planning(Payload, State);
-        <<"submit_planning">>   -> execute_submit_planning(Payload, State);
+        <<"open_planning_v1">>     -> execute_open_planning(Payload, State);
+        <<"shelve_planning_v1">>   -> execute_shelve_planning(Payload, State);
+        <<"resume_planning_v1">>   -> execute_resume_planning(Payload, State);
+        <<"submit_planning_v1">>   -> execute_submit_planning(Payload, State);
 
         %% === KANBAN COMMANDS ===
-        <<"post_kanban_card">>      -> require_kanban_active(State, fun() -> execute_post_card(Payload, State) end);
-        <<"pick_kanban_card">>      -> require_kanban_active(State, fun() -> execute_pick_card(Payload, State) end);
-        <<"finish_kanban_card">>    -> require_kanban_active(State, fun() -> execute_finish_card(Payload, State) end);
-        <<"unpick_kanban_card">>    -> require_kanban_active(State, fun() -> execute_unpick_card(Payload, State) end);
-        <<"park_kanban_card">>      -> require_kanban_active(State, fun() -> execute_park_card(Payload, State) end);
-        <<"unpark_kanban_card">>    -> require_kanban_active(State, fun() -> execute_unpark_card(Payload, State) end);
-        <<"block_kanban_card">>     -> require_kanban_active(State, fun() -> execute_block_card(Payload, State) end);
-        <<"unblock_kanban_card">>   -> require_kanban_active(State, fun() -> execute_unblock_card(Payload, State) end);
+        <<"post_kanban_card_v1">>      -> require_kanban_active(State, fun() -> execute_post_card(Payload, State) end);
+        <<"pick_kanban_card_v1">>      -> require_kanban_active(State, fun() -> execute_pick_card(Payload, State) end);
+        <<"finish_kanban_card_v1">>    -> require_kanban_active(State, fun() -> execute_finish_card(Payload, State) end);
+        <<"unpick_kanban_card_v1">>    -> require_kanban_active(State, fun() -> execute_unpick_card(Payload, State) end);
+        <<"park_kanban_card_v1">>      -> require_kanban_active(State, fun() -> execute_park_card(Payload, State) end);
+        <<"unpark_kanban_card_v1">>    -> require_kanban_active(State, fun() -> execute_unpark_card(Payload, State) end);
+        <<"block_kanban_card_v1">>     -> require_kanban_active(State, fun() -> execute_block_card(Payload, State) end);
+        <<"unblock_kanban_card_v1">>   -> require_kanban_active(State, fun() -> execute_unblock_card(Payload, State) end);
 
         %% === CRAFTING COMMANDS ===
-        <<"open_crafting">>     -> execute_open_crafting(Payload, State);
-        <<"shelve_crafting">>   -> execute_shelve_crafting(Payload, State);
-        <<"resume_crafting">>   -> execute_resume_crafting(Payload, State);
-        <<"generate_module">>     -> require_crafting_open(State, fun() -> execute_generate_module(Payload) end);
-        <<"generate_test">>       -> require_crafting_open(State, fun() -> execute_generate_test(Payload) end);
-        <<"run_test_suite">>      -> require_crafting_open(State, fun() -> execute_run_test_suite(Payload) end);
-        <<"record_test_result">>  -> require_crafting_open(State, fun() -> execute_record_test_result(Payload) end);
-        <<"deliver_release">>     -> require_crafting_open(State, fun() -> execute_deliver_release(Payload) end);
-        <<"stage_delivery">>      -> require_crafting_open(State, fun() -> execute_stage_delivery(Payload) end);
+        <<"open_crafting_v1">>     -> execute_open_crafting(Payload, State);
+        <<"shelve_crafting_v1">>   -> execute_shelve_crafting(Payload, State);
+        <<"resume_crafting_v1">>   -> execute_resume_crafting(Payload, State);
+        <<"generate_module_v1">>     -> require_crafting_open(State, fun() -> execute_generate_module(Payload) end);
+        <<"generate_test_v1">>       -> require_crafting_open(State, fun() -> execute_generate_test(Payload) end);
+        <<"run_test_suite_v1">>      -> require_crafting_open(State, fun() -> execute_run_test_suite(Payload) end);
+        <<"record_test_result_v1">>  -> require_crafting_open(State, fun() -> execute_record_test_result(Payload) end);
+        <<"deliver_release_v1">>     -> require_crafting_open(State, fun() -> execute_deliver_release(Payload) end);
+        <<"stage_delivery_v1">>      -> require_crafting_open(State, fun() -> execute_stage_delivery(Payload) end);
 
         _ -> {error, unknown_command}
     end;
