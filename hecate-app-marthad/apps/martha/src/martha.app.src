@@ -3,7 +3,7 @@
     {vsn, "0.5.0"},
     {registered, [martha_sup]},
     {mod, {martha_app, []}},
-    {applications, [kernel, stdlib, crypto, evoq, reckon_evoq, reckon_db, cowboy, shared]},
+    {applications, [kernel, stdlib, crypto, evoq, reckon_evoq, reckon_db, cowboy]},
     {env, []},
     {modules, []}
 ]}.

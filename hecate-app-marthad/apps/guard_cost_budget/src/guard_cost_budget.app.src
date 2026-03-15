@@ -9,8 +9,7 @@
         crypto,
         evoq,
         reckon_evoq,
-        reckon_db,
-        serve_llm
+        reckon_db
     ]},
     {env, []},
     {modules, []},
