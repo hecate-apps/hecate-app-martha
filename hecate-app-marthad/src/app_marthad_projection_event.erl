@@ -12,14 +12,29 @@
 -module(app_marthad_projection_event).
 
 -include_lib("reckon_gater/include/esdb_gater_types.hrl").
+-include_lib("evoq/include/evoq_types.hrl").
 
 -export([to_map/1]).
 
-%% @doc Convert an #event{} record or map to a flat projection map.
+%% @doc Convert an event record or map to a flat projection map.
 %%
-%% For #event{} records: merges data fields at top level with envelope.
-%% For maps: returns as-is (already flat).
--spec to_map(event() | map()) -> map().
+%% Handles #event{} (reckon_gater), #evoq_event{} (evoq), and maps.
+%% Merges data fields at top level with envelope.
+-spec to_map(event() | #evoq_event{} | map()) -> map().
+to_map(#evoq_event{} = E) ->
+    Envelope = #{
+        event_id => E#evoq_event.event_id,
+        event_type => E#evoq_event.event_type,
+        stream_id => E#evoq_event.stream_id,
+        version => E#evoq_event.version,
+        metadata => E#evoq_event.metadata,
+        timestamp => E#evoq_event.timestamp,
+        epoch_us => E#evoq_event.epoch_us
+    },
+    case E#evoq_event.data of
+        Data when is_map(Data) -> maps:merge(Data, Envelope);
+        _ -> Envelope
+    end;
 to_map(#event{} = E) ->
     Envelope = #{
         event_id => E#event.event_id,

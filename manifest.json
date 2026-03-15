@@ -1,7 +1,7 @@
 {
   "name": "hecate-app-martha",
   "display_name": "Martha",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "icon": "dog2",
   "description": "AI-Assisted Application Lifecycle",
   "callback_module": "app_martha",

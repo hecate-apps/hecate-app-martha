@@ -8,6 +8,7 @@
 -behaviour(gen_server).
 
 -include_lib("reckon_gater/include/esdb_gater_types.hrl").
+-include_lib("evoq/include/evoq_types.hrl").
 
 -export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
@@ -37,6 +38,7 @@ forward_event(E) ->
     Data = app_marthad_projection_event:to_map(E),
     app_marthad_web_events:broadcast(EventType, Data).
 
+extract_event_type(#evoq_event{event_type = T}) when is_binary(T) -> T;
 extract_event_type(#event{event_type = T}) when is_binary(T) -> T;
 extract_event_type(#{event_type := T}) when is_binary(T) -> T;
 extract_event_type(_) -> <<"unknown">>.

@@ -66,7 +66,7 @@ function createChatStream(model: string, messages: ChatMessage[]): ChatStream {
 				const resp = await fetch(`${DAEMON_BASE}/api/llm/chat`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ model, messages })
+					body: JSON.stringify({ model, messages, stream: true })
 				});
 				if (cancelled) return;
 				if (!resp.ok) {
@@ -74,9 +74,44 @@ function createChatStream(model: string, messages: ChatMessage[]): ChatStream {
 					if (errorHandler) errorHandler(text || 'LLM request failed');
 					return;
 				}
-				const data = await resp.json();
-				if (chunkHandler) chunkHandler({ content: data.content });
-				if (doneHandler) doneHandler({ content: '', done: true });
+
+				const reader = resp.body?.getReader();
+				if (!reader) {
+					if (errorHandler) errorHandler('No response body');
+					return;
+				}
+
+				const decoder = new TextDecoder();
+				let buffer = '';
+
+				while (!cancelled) {
+					const { done: readerDone, value } = await reader.read();
+					if (readerDone) break;
+
+					buffer += decoder.decode(value, { stream: true });
+					const blocks = buffer.split('\n\n');
+					buffer = blocks.pop() ?? '';
+
+					for (const block of blocks) {
+						const line = block.trim();
+						if (!line.startsWith('data: ')) continue;
+						const payload = line.slice(6);
+						if (payload === '[DONE]') {
+							if (doneHandler) doneHandler({ content: '', done: true });
+							reader.cancel();
+							return;
+						}
+						try {
+							const chunk = JSON.parse(payload);
+							if (chunk.error) {
+								if (errorHandler) errorHandler(chunk.error);
+								reader.cancel();
+								return;
+							}
+							if (chunkHandler) chunkHandler({ content: chunk.content ?? '' });
+						} catch { /* skip malformed chunks */ }
+					}
+				}
 			} catch (e: unknown) {
 				if (cancelled) return;
 				const err = e as { message?: string };
