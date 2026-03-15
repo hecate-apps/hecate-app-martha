@@ -15,17 +15,30 @@ start_link() ->
 
 -spec get_retry(binary()) -> {ok, map()} | {error, not_found}.
 get_retry(SessionId) ->
-    case ets:lookup(?TABLE, SessionId) of
-        [{_, Data}] -> {ok, Data};
-        [] -> {error, not_found}
+    case table_exists(?TABLE) of
+        false -> {error, not_found};
+        true ->
+            case ets:lookup(?TABLE, SessionId) of
+                [{_, Data}] -> {ok, Data};
+                [] -> {error, not_found}
+            end
     end.
 
 -spec list_retries(binary()) -> {ok, [map()]}.
 list_retries(VentureId) ->
-    All = ets:tab2list(?TABLE),
-    Filtered = [V || {_, V} <- All,
-                     maps:get(<<"venture_id">>, V, maps:get(venture_id, V, <<>>)) =:= VentureId],
-    {ok, Filtered}.
+    case table_exists(?TABLE) of
+        false -> {ok, []};
+        true ->
+            All = ets:tab2list(?TABLE),
+            Filtered = [V || {_, V} <- All,
+                             maps:get(<<"venture_id">>, V, maps:get(venture_id, V, <<>>)) =:= VentureId],
+            {ok, Filtered}
+    end.
+
+%% Internal
+
+table_exists(Table) ->
+    ets:info(Table) =/= undefined.
 
 %% gen_server callbacks
 

@@ -48,85 +48,128 @@ start_link() ->
 
 -spec get_venture(binary()) -> {ok, map()} | {error, not_found}.
 get_venture(VentureId) ->
-    case ets:lookup(?VENTURES, VentureId) of
-        [{_, V}] -> {ok, V};
-        [] -> {error, not_found}
+    case table_exists(?VENTURES) of
+        false -> {error, not_found};
+        true ->
+            case ets:lookup(?VENTURES, VentureId) of
+                [{_, V}] -> {ok, V};
+                [] -> {error, not_found}
+            end
     end.
 
 -spec list_ventures() -> {ok, [map()]}.
 list_ventures() ->
-    All = [V || {_, V} <- ets:tab2list(?VENTURES)],
-    Sorted = lists:sort(fun(A, B) ->
-        maps:get(initiated_at, A, 0) >= maps:get(initiated_at, B, 0)
-    end, All),
-    {ok, Sorted}.
+    case table_exists(?VENTURES) of
+        false -> {ok, []};
+        true ->
+            All = [V || {_, V} <- ets:tab2list(?VENTURES)],
+            Sorted = lists:sort(fun(A, B) ->
+                maps:get(initiated_at, A, 0) >= maps:get(initiated_at, B, 0)
+            end, All),
+            {ok, Sorted}
+    end.
 
 -spec list_ventures_active() -> {ok, [map()]}.
 list_ventures_active() ->
-    All = [V || {_, #{status := S} = V} <- ets:tab2list(?VENTURES),
-                evoq_bit_flags:has_not(S, ?VL_ARCHIVED)],
-    Sorted = lists:sort(fun(A, B) ->
-        maps:get(initiated_at, A, 0) >= maps:get(initiated_at, B, 0)
-    end, All),
-    {ok, Sorted}.
+    case table_exists(?VENTURES) of
+        false -> {ok, []};
+        true ->
+            All = [V || {_, #{status := S} = V} <- ets:tab2list(?VENTURES),
+                        evoq_bit_flags:has_not(S, ?VL_ARCHIVED)],
+            Sorted = lists:sort(fun(A, B) ->
+                maps:get(initiated_at, A, 0) >= maps:get(initiated_at, B, 0)
+            end, All),
+            {ok, Sorted}
+    end.
 
 %% --- Discovered Divisions ---
 
 -spec list_divisions_by_venture(binary()) -> {ok, [map()]}.
 list_divisions_by_venture(VentureId) ->
-    All = [D || {_, #{venture_id := V} = D} <- ets:tab2list(?DIVISIONS),
-                V =:= VentureId],
-    Sorted = lists:sort(fun(A, B) ->
-        maps:get(discovered_at, A, 0) >= maps:get(discovered_at, B, 0)
-    end, All),
-    {ok, Sorted}.
+    case table_exists(?DIVISIONS) of
+        false -> {ok, []};
+        true ->
+            All = [D || {_, #{venture_id := V} = D} <- ets:tab2list(?DIVISIONS),
+                        V =:= VentureId],
+            Sorted = lists:sort(fun(A, B) ->
+                maps:get(discovered_at, A, 0) >= maps:get(discovered_at, B, 0)
+            end, All),
+            {ok, Sorted}
+    end.
 
 -spec count_divisions(binary()) -> non_neg_integer().
 count_divisions(VentureId) ->
-    length([1 || {_, #{venture_id := V}} <- ets:tab2list(?DIVISIONS),
-                 V =:= VentureId]).
+    case table_exists(?DIVISIONS) of
+        false -> 0;
+        true ->
+            length([1 || {_, #{venture_id := V}} <- ets:tab2list(?DIVISIONS),
+                         V =:= VentureId])
+    end.
 
 %% --- Storm Sessions ---
 
 -spec get_latest_storm_session(binary()) -> {ok, map()} | {error, not_found}.
 get_latest_storm_session(VentureId) ->
-    Sessions = [S || {_, #{venture_id := V} = S} <- ets:tab2list(?STORM_SESSIONS),
-                     V =:= VentureId],
-    case Sessions of
-        [] -> {error, not_found};
-        _ ->
-            Latest = lists:foldl(fun(S, Acc) ->
-                case maps:get(storm_number, S, 0) > maps:get(storm_number, Acc, 0) of
-                    true -> S;
-                    false -> Acc
-                end
-            end, hd(Sessions), tl(Sessions)),
-            {ok, Latest}
+    case table_exists(?STORM_SESSIONS) of
+        false -> {error, not_found};
+        true ->
+            Sessions = [S || {_, #{venture_id := V} = S} <- ets:tab2list(?STORM_SESSIONS),
+                             V =:= VentureId],
+            case Sessions of
+                [] -> {error, not_found};
+                _ ->
+                    Latest = lists:foldl(fun(S, Acc) ->
+                        case maps:get(storm_number, S, 0) > maps:get(storm_number, Acc, 0) of
+                            true -> S;
+                            false -> Acc
+                        end
+                    end, hd(Sessions), tl(Sessions)),
+                    {ok, Latest}
+            end
     end.
 
 %% --- Event Stickies ---
 
 -spec list_stickies_by_storm(binary(), non_neg_integer()) -> {ok, [map()]}.
 list_stickies_by_storm(VentureId, StormNumber) ->
-    All = [S || {_, #{venture_id := V, storm_number := SN} = S} <- ets:tab2list(?STICKIES),
-                V =:= VentureId, SN =:= StormNumber],
-    {ok, All}.
+    case table_exists(?STICKIES) of
+        false -> {ok, []};
+        true ->
+            All = [S || {_, #{venture_id := V, storm_number := SN} = S} <- ets:tab2list(?STICKIES),
+                        V =:= VentureId, SN =:= StormNumber],
+            {ok, All}
+    end.
 
 %% --- Event Clusters ---
 
 -spec list_clusters_by_storm(binary(), non_neg_integer()) -> {ok, [map()]}.
 list_clusters_by_storm(VentureId, StormNumber) ->
-    All = [C || {_, #{venture_id := V, storm_number := SN} = C} <- ets:tab2list(?CLUSTERS),
-                V =:= VentureId, SN =:= StormNumber],
-    {ok, All}.
+    case table_exists(?CLUSTERS) of
+        false -> {ok, []};
+        true ->
+            All = [C || {_, #{venture_id := V, storm_number := SN} = C} <- ets:tab2list(?CLUSTERS),
+                        V =:= VentureId, SN =:= StormNumber],
+            {ok, All}
+    end.
 
 %% --- Fact Arrows ---
 
 -spec list_arrows_by_storm(binary(), non_neg_integer()) -> {ok, [map()]}.
 list_arrows_by_storm(VentureId, StormNumber) ->
-    All = [A || {_, #{venture_id := V, storm_number := SN} = A} <- ets:tab2list(?ARROWS),
-                V =:= VentureId, SN =:= StormNumber],
-    {ok, All}.
+    case table_exists(?ARROWS) of
+        false -> {ok, []};
+        true ->
+            All = [A || {_, #{venture_id := V, storm_number := SN} = A} <- ets:tab2list(?ARROWS),
+                        V =:= VentureId, SN =:= StormNumber],
+            {ok, All}
+    end.
+
+%%====================================================================
+%% Internal
+%%====================================================================
+
+table_exists(Table) ->
+    ets:info(Table) =/= undefined.
 
 %%====================================================================
 %% gen_server callbacks

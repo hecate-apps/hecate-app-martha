@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.3] - 2026-03-15
+
+### Fixed
+
+- **Connection status is event-driven**: Status indicator now driven by SSE stream
+  state instead of polling `/health` every 5s. SSE open = connected, SSE closed = disconnected.
+- **Health poll reduced to 30s**: Health data (version, etc.) still polled but at a
+  reasonable interval and no longer drives connection status.
+- **ETS crash during init window**: All `project_*_store.erl` modules now guard ETS
+  queries with `table_exists/1` — returns empty results instead of `badarg` crash when
+  tables don't exist yet during async plugin init.
+- **Release cleanup keeps 3**: Fixed `release.yml` cleanup job to keep latest 3 releases
+  instead of only 1.
+
 ## [0.3.2] - 2026-03-12
 
 ### Fixed

@@ -40,94 +40,159 @@ start_link() ->
 
 -spec get_division(binary()) -> {ok, map()} | {error, not_found}.
 get_division(DivisionId) ->
-    case ets:lookup(?DIVISIONS, DivisionId) of
-        [{_, V}] -> {ok, V};
-        [] -> {error, not_found}
+    case table_exists(?DIVISIONS) of
+        false -> {error, not_found};
+        true ->
+            case ets:lookup(?DIVISIONS, DivisionId) of
+                [{_, V}] -> {ok, V};
+                [] -> {error, not_found}
+            end
     end.
 
 -spec list_divisions_by_venture(binary()) -> {ok, [map()]}.
 list_divisions_by_venture(VentureId) ->
-    All = [D || {_, #{venture_id := V} = D} <- ets:tab2list(?DIVISIONS),
-                V =:= VentureId],
-    Sorted = lists:sort(fun(A, B) ->
-        maps:get(initiated_at, A, 0) >= maps:get(initiated_at, B, 0)
-    end, All),
-    {ok, Sorted}.
+    case table_exists(?DIVISIONS) of
+        false -> {ok, []};
+        true ->
+            All = [D || {_, #{venture_id := V} = D} <- ets:tab2list(?DIVISIONS),
+                        V =:= VentureId],
+            Sorted = lists:sort(fun(A, B) ->
+                maps:get(initiated_at, A, 0) >= maps:get(initiated_at, B, 0)
+            end, All),
+            {ok, Sorted}
+    end.
 
 -spec list_divisions() -> {ok, [map()]}.
 list_divisions() ->
-    All = [D || {_, D} <- ets:tab2list(?DIVISIONS)],
-    Sorted = lists:sort(fun(A, B) ->
-        maps:get(initiated_at, A, 0) >= maps:get(initiated_at, B, 0)
-    end, All),
-    {ok, Sorted}.
+    case table_exists(?DIVISIONS) of
+        false -> {ok, []};
+        true ->
+            All = [D || {_, D} <- ets:tab2list(?DIVISIONS)],
+            Sorted = lists:sort(fun(A, B) ->
+                maps:get(initiated_at, A, 0) >= maps:get(initiated_at, B, 0)
+            end, All),
+            {ok, Sorted}
+    end.
 
 %% --- Storming ---
 
 -spec list_designed_aggregates(binary()) -> {ok, [map()]}.
 list_designed_aggregates(DivisionId) ->
-    All = [V || {{D, _}, V} <- ets:tab2list(?DESIGNED_AGGREGATES), D =:= DivisionId],
-    {ok, All}.
+    case table_exists(?DESIGNED_AGGREGATES) of
+        false -> {ok, []};
+        true ->
+            All = [V || {{D, _}, V} <- ets:tab2list(?DESIGNED_AGGREGATES), D =:= DivisionId],
+            {ok, All}
+    end.
 
 -spec list_designed_events(binary()) -> {ok, [map()]}.
 list_designed_events(DivisionId) ->
-    All = [V || {{D, _}, V} <- ets:tab2list(?DESIGNED_EVENTS), D =:= DivisionId],
-    {ok, All}.
+    case table_exists(?DESIGNED_EVENTS) of
+        false -> {ok, []};
+        true ->
+            All = [V || {{D, _}, V} <- ets:tab2list(?DESIGNED_EVENTS), D =:= DivisionId],
+            {ok, All}
+    end.
 
 -spec list_planned_desks(binary()) -> {ok, [map()]}.
 list_planned_desks(DivisionId) ->
-    All = [V || {{D, _}, V} <- ets:tab2list(?PLANNED_DESKS), D =:= DivisionId],
-    {ok, All}.
+    case table_exists(?PLANNED_DESKS) of
+        false -> {ok, []};
+        true ->
+            All = [V || {{D, _}, V} <- ets:tab2list(?PLANNED_DESKS), D =:= DivisionId],
+            {ok, All}
+    end.
 
 -spec list_planned_dependencies(binary()) -> {ok, [map()]}.
 list_planned_dependencies(DivisionId) ->
-    All = [V || {{D, _}, V} <- ets:tab2list(?PLANNED_DEPS), D =:= DivisionId],
-    {ok, All}.
+    case table_exists(?PLANNED_DEPS) of
+        false -> {ok, []};
+        true ->
+            All = [V || {{D, _}, V} <- ets:tab2list(?PLANNED_DEPS), D =:= DivisionId],
+            {ok, All}
+    end.
 
 %% --- Kanban ---
 
 -spec list_kanban_cards(binary()) -> {ok, [map()]}.
 list_kanban_cards(DivisionId) ->
-    All = [V || {{D, _}, V} <- ets:tab2list(?KANBAN_CARDS), D =:= DivisionId],
-    {ok, All}.
+    case table_exists(?KANBAN_CARDS) of
+        false -> {ok, []};
+        true ->
+            All = [V || {{D, _}, V} <- ets:tab2list(?KANBAN_CARDS), D =:= DivisionId],
+            {ok, All}
+    end.
 
 -spec list_kanban_cards_by_status(binary(), non_neg_integer()) -> {ok, [map()]}.
 list_kanban_cards_by_status(DivisionId, StatusFilter) ->
-    All = [V || {{D, _}, #{status := S} = V} <- ets:tab2list(?KANBAN_CARDS),
-                D =:= DivisionId, S =:= StatusFilter],
-    {ok, All}.
+    case table_exists(?KANBAN_CARDS) of
+        false -> {ok, []};
+        true ->
+            All = [V || {{D, _}, #{status := S} = V} <- ets:tab2list(?KANBAN_CARDS),
+                        D =:= DivisionId, S =:= StatusFilter],
+            {ok, All}
+    end.
 
 %% --- Crafting ---
 
 -spec list_generated_modules(binary()) -> {ok, [map()]}.
 list_generated_modules(DivisionId) ->
-    All = [V || {{D, _}, V} <- ets:tab2list(?GENERATED_MODULES), D =:= DivisionId],
-    {ok, All}.
+    case table_exists(?GENERATED_MODULES) of
+        false -> {ok, []};
+        true ->
+            All = [V || {{D, _}, V} <- ets:tab2list(?GENERATED_MODULES), D =:= DivisionId],
+            {ok, All}
+    end.
 
 -spec list_generated_tests(binary()) -> {ok, [map()]}.
 list_generated_tests(DivisionId) ->
-    All = [V || {{D, _}, V} <- ets:tab2list(?GENERATED_TESTS), D =:= DivisionId],
-    {ok, All}.
+    case table_exists(?GENERATED_TESTS) of
+        false -> {ok, []};
+        true ->
+            All = [V || {{D, _}, V} <- ets:tab2list(?GENERATED_TESTS), D =:= DivisionId],
+            {ok, All}
+    end.
 
 -spec list_test_suites(binary()) -> {ok, [map()]}.
 list_test_suites(DivisionId) ->
-    All = [V || {{D, _}, V} <- ets:tab2list(?TEST_SUITES), D =:= DivisionId],
-    {ok, All}.
+    case table_exists(?TEST_SUITES) of
+        false -> {ok, []};
+        true ->
+            All = [V || {{D, _}, V} <- ets:tab2list(?TEST_SUITES), D =:= DivisionId],
+            {ok, All}
+    end.
 
 -spec list_test_results(binary()) -> {ok, [map()]}.
 list_test_results(DivisionId) ->
-    All = [V || {{D, _}, V} <- ets:tab2list(?TEST_RESULTS), D =:= DivisionId],
-    {ok, All}.
+    case table_exists(?TEST_RESULTS) of
+        false -> {ok, []};
+        true ->
+            All = [V || {{D, _}, V} <- ets:tab2list(?TEST_RESULTS), D =:= DivisionId],
+            {ok, All}
+    end.
 
 -spec list_releases(binary()) -> {ok, [map()]}.
 list_releases(DivisionId) ->
-    All = [V || {{D, _}, V} <- ets:tab2list(?RELEASES), D =:= DivisionId],
-    {ok, All}.
+    case table_exists(?RELEASES) of
+        false -> {ok, []};
+        true ->
+            All = [V || {{D, _}, V} <- ets:tab2list(?RELEASES), D =:= DivisionId],
+            {ok, All}
+    end.
 
 -spec list_delivery_stages(binary()) -> {ok, [map()]}.
 list_delivery_stages(DivisionId) ->
-    All = [V || {{D, _}, V} <- ets:tab2list(?DELIVERY_STAGES), D =:= DivisionId],
-    {ok, All}.
+    case table_exists(?DELIVERY_STAGES) of
+        false -> {ok, []};
+        true ->
+            All = [V || {{D, _}, V} <- ets:tab2list(?DELIVERY_STAGES), D =:= DivisionId],
+            {ok, All}
+    end.
+
+%% --- Internal ---
+
+table_exists(Table) ->
+    ets:info(Table) =/= undefined.
 
 %% --- gen_server ---
 

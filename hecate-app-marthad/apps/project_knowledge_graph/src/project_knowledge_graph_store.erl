@@ -24,53 +24,76 @@ start_link() ->
 
 -spec get_graph(binary()) -> {ok, map()} | {error, not_found}.
 get_graph(VentureId) ->
-    case ets:lookup(?TABLE, VentureId) of
-        [{_, G}] -> {ok, G};
-        [] -> {error, not_found}
+    case table_exists(?TABLE) of
+        false -> {error, not_found};
+        true ->
+            case ets:lookup(?TABLE, VentureId) of
+                [{_, G}] -> {ok, G};
+                [] -> {error, not_found}
+            end
     end.
 
 -spec get_entities(binary()) -> {ok, [map()]}.
 get_entities(VentureId) ->
-    case ets:lookup(?TABLE, VentureId) of
-        [{_, #{entities := Entities}}] ->
-            {ok, maps:values(Entities)};
-        [] ->
-            {ok, []}
+    case table_exists(?TABLE) of
+        false -> {ok, []};
+        true ->
+            case ets:lookup(?TABLE, VentureId) of
+                [{_, #{entities := Entities}}] ->
+                    {ok, maps:values(Entities)};
+                [] ->
+                    {ok, []}
+            end
     end.
 
 -spec get_insights(binary()) -> {ok, [map()]}.
 get_insights(VentureId) ->
-    case ets:lookup(?TABLE, VentureId) of
-        [{_, #{insights := Insights}}] ->
-            %% Filter out superseded insights by default
-            Active = [I || I <- Insights,
-                           maps:get(superseded, I, false) =:= false],
-            {ok, Active};
-        [] ->
-            {ok, []}
+    case table_exists(?TABLE) of
+        false -> {ok, []};
+        true ->
+            case ets:lookup(?TABLE, VentureId) of
+                [{_, #{insights := Insights}}] ->
+                    %% Filter out superseded insights by default
+                    Active = [I || I <- Insights,
+                                   maps:get(superseded, I, false) =:= false],
+                    {ok, Active};
+                [] ->
+                    {ok, []}
+            end
     end.
 
 -spec search_entities(binary(), binary()) -> {ok, [map()]}.
 search_entities(VentureId, Query) ->
-    case ets:lookup(?TABLE, VentureId) of
-        [{_, #{entities := Entities}}] ->
-            LowerQuery = string:lowercase(Query),
-            Matches = maps:fold(fun(_Id, Entity, Acc) ->
-                Name = string:lowercase(maps:get(name, Entity, <<>>)),
-                Desc = string:lowercase(maps:get(description, Entity, <<>>)),
-                case binary:match(Name, LowerQuery) of
-                    {_, _} -> [Entity | Acc];
-                    nomatch ->
-                        case binary:match(Desc, LowerQuery) of
+    case table_exists(?TABLE) of
+        false -> {ok, []};
+        true ->
+            case ets:lookup(?TABLE, VentureId) of
+                [{_, #{entities := Entities}}] ->
+                    LowerQuery = string:lowercase(Query),
+                    Matches = maps:fold(fun(_Id, Entity, Acc) ->
+                        Name = string:lowercase(maps:get(name, Entity, <<>>)),
+                        Desc = string:lowercase(maps:get(description, Entity, <<>>)),
+                        case binary:match(Name, LowerQuery) of
                             {_, _} -> [Entity | Acc];
-                            nomatch -> Acc
+                            nomatch ->
+                                case binary:match(Desc, LowerQuery) of
+                                    {_, _} -> [Entity | Acc];
+                                    nomatch -> Acc
+                                end
                         end
-                end
-            end, [], Entities),
-            {ok, Matches};
-        [] ->
-            {ok, []}
+                    end, [], Entities),
+                    {ok, Matches};
+                [] ->
+                    {ok, []}
+            end
     end.
+
+%%====================================================================
+%% Internal
+%%====================================================================
+
+table_exists(Table) ->
+    ets:info(Table) =/= undefined.
 
 %%====================================================================
 %% gen_server callbacks

@@ -30,12 +30,25 @@ handle_cast(_Msg, State) -> {noreply, State}.
 %% -- Budget queries --
 
 get_budget(VentureId) ->
-    case ets:lookup(cost_budgets, VentureId) of
-        [{_, Budget}] -> {ok, Budget};
-        [] -> {error, not_found}
+    case table_exists(cost_budgets) of
+        false -> {error, not_found};
+        true ->
+            case ets:lookup(cost_budgets, VentureId) of
+                [{_, Budget}] -> {ok, Budget};
+                [] -> {error, not_found}
+            end
     end.
 
 list_budgets() ->
-    All = ets:tab2list(cost_budgets),
-    Items = [B || {_K, B} <- All],
-    {ok, Items}.
+    case table_exists(cost_budgets) of
+        false -> {ok, []};
+        true ->
+            All = ets:tab2list(cost_budgets),
+            Items = [B || {_K, B} <- All],
+            {ok, Items}
+    end.
+
+%% -- Internal --
+
+table_exists(Table) ->
+    ets:info(Table) =/= undefined.

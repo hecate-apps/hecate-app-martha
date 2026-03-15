@@ -39,82 +39,122 @@ start_link() ->
 
 -spec list_turns_by_session(binary()) -> {ok, [map()]}.
 list_turns_by_session(SessionId) ->
-    All = [T || {{S, _N, _D}, T} <- ets:tab2list(?TURNS),
-                S =:= SessionId],
-    Sorted = lists:sort(fun(A, B) ->
-        {maps:get(turn_number, A, 0), maps:get(timestamp, A, 0)} =<
-        {maps:get(turn_number, B, 0), maps:get(timestamp, B, 0)}
-    end, All),
-    {ok, Sorted}.
+    case table_exists(?TURNS) of
+        false -> {ok, []};
+        true ->
+            All = [T || {{S, _N, _D}, T} <- ets:tab2list(?TURNS),
+                        S =:= SessionId],
+            Sorted = lists:sort(fun(A, B) ->
+                {maps:get(turn_number, A, 0), maps:get(timestamp, A, 0)} =<
+                {maps:get(turn_number, B, 0), maps:get(timestamp, B, 0)}
+            end, All),
+            {ok, Sorted}
+    end.
 
 -spec get_turn(binary(), non_neg_integer()) -> {ok, [map()]} | {error, not_found}.
 get_turn(SessionId, TurnNumber) ->
-    Matches = [T || {{S, N, _D}, T} <- ets:tab2list(?TURNS),
-                    S =:= SessionId, N =:= TurnNumber],
-    case Matches of
-        [] -> {error, not_found};
-        _ ->
-            Sorted = lists:sort(fun(A, B) ->
-                maps:get(timestamp, A, 0) =< maps:get(timestamp, B, 0)
-            end, Matches),
-            {ok, Sorted}
+    case table_exists(?TURNS) of
+        false -> {error, not_found};
+        true ->
+            Matches = [T || {{S, N, _D}, T} <- ets:tab2list(?TURNS),
+                            S =:= SessionId, N =:= TurnNumber],
+            case Matches of
+                [] -> {error, not_found};
+                _ ->
+                    Sorted = lists:sort(fun(A, B) ->
+                        maps:get(timestamp, A, 0) =< maps:get(timestamp, B, 0)
+                    end, Matches),
+                    {ok, Sorted}
+            end
     end.
 
 -spec count_turns(binary()) -> non_neg_integer().
 count_turns(SessionId) ->
-    length([1 || {{S, _N, _D}, _T} <- ets:tab2list(?TURNS),
-                 S =:= SessionId]).
+    case table_exists(?TURNS) of
+        false -> 0;
+        true ->
+            length([1 || {{S, _N, _D}, _T} <- ets:tab2list(?TURNS),
+                         S =:= SessionId])
+    end.
 
 -spec total_tokens_by_session(binary()) -> {non_neg_integer(), non_neg_integer()}.
 total_tokens_by_session(SessionId) ->
-    Turns = [T || {{S, _N, _D}, T} <- ets:tab2list(?TURNS),
-                  S =:= SessionId],
-    lists:foldl(fun(T, {InAcc, OutAcc}) ->
-        {InAcc + maps:get(tokens_in, T, 0),
-         OutAcc + maps:get(tokens_out, T, 0)}
-    end, {0, 0}, Turns).
+    case table_exists(?TURNS) of
+        false -> {0, 0};
+        true ->
+            Turns = [T || {{S, _N, _D}, T} <- ets:tab2list(?TURNS),
+                          S =:= SessionId],
+            lists:foldl(fun(T, {InAcc, OutAcc}) ->
+                {InAcc + maps:get(tokens_in, T, 0),
+                 OutAcc + maps:get(tokens_out, T, 0)}
+            end, {0, 0}, Turns)
+    end.
 
 -spec list_turns_by_venture(binary()) -> {ok, [map()]}.
 list_turns_by_venture(VentureId) ->
-    All = [T || {_Key, #{venture_id := V} = T} <- ets:tab2list(?TURNS),
-                V =:= VentureId],
-    Sorted = lists:sort(fun(A, B) ->
-        maps:get(timestamp, A, 0) =< maps:get(timestamp, B, 0)
-    end, All),
-    {ok, Sorted}.
+    case table_exists(?TURNS) of
+        false -> {ok, []};
+        true ->
+            All = [T || {_Key, #{venture_id := V} = T} <- ets:tab2list(?TURNS),
+                        V =:= VentureId],
+            Sorted = lists:sort(fun(A, B) ->
+                maps:get(timestamp, A, 0) =< maps:get(timestamp, B, 0)
+            end, All),
+            {ok, Sorted}
+    end.
 
 %% --- Sessions ---
 
 -spec get_session(binary()) -> {ok, map()} | {error, not_found}.
 get_session(SessionId) ->
-    case ets:lookup(?SESSIONS, SessionId) of
-        [{_, Session}] -> {ok, Session};
-        [] -> {error, not_found}
+    case table_exists(?SESSIONS) of
+        false -> {error, not_found};
+        true ->
+            case ets:lookup(?SESSIONS, SessionId) of
+                [{_, Session}] -> {ok, Session};
+                [] -> {error, not_found}
+            end
     end.
 
 -spec list_sessions_by_venture(binary()) -> {ok, [map()]}.
 list_sessions_by_venture(VentureId) ->
-    All = [S || {_Key, #{venture_id := V} = S} <- ets:tab2list(?SESSIONS),
-                V =:= VentureId],
-    {ok, sort_by_initiated_at(All)}.
+    case table_exists(?SESSIONS) of
+        false -> {ok, []};
+        true ->
+            All = [S || {_Key, #{venture_id := V} = S} <- ets:tab2list(?SESSIONS),
+                        V =:= VentureId],
+            {ok, sort_by_initiated_at(All)}
+    end.
 
 -spec list_sessions_by_division(binary()) -> {ok, [map()]}.
 list_sessions_by_division(DivisionId) ->
-    All = [S || {_Key, #{division_id := D} = S} <- ets:tab2list(?SESSIONS),
-                D =:= DivisionId],
-    {ok, sort_by_initiated_at(All)}.
+    case table_exists(?SESSIONS) of
+        false -> {ok, []};
+        true ->
+            All = [S || {_Key, #{division_id := D} = S} <- ets:tab2list(?SESSIONS),
+                        D =:= DivisionId],
+            {ok, sort_by_initiated_at(All)}
+    end.
 
 -spec list_sessions_by_role(binary()) -> {ok, [map()]}.
 list_sessions_by_role(AgentRole) ->
-    All = [S || {_Key, #{agent_role := R} = S} <- ets:tab2list(?SESSIONS),
-                R =:= AgentRole],
-    {ok, sort_by_initiated_at(All)}.
+    case table_exists(?SESSIONS) of
+        false -> {ok, []};
+        true ->
+            All = [S || {_Key, #{agent_role := R} = S} <- ets:tab2list(?SESSIONS),
+                        R =:= AgentRole],
+            {ok, sort_by_initiated_at(All)}
+    end.
 
 -spec list_active_sessions() -> {ok, [map()]}.
 list_active_sessions() ->
-    All = [S || {_Key, #{archived_at := A} = S} <- ets:tab2list(?SESSIONS),
-                A =:= undefined],
-    {ok, sort_by_initiated_at(All)}.
+    case table_exists(?SESSIONS) of
+        false -> {ok, []};
+        true ->
+            All = [S || {_Key, #{archived_at := A} = S} <- ets:tab2list(?SESSIONS),
+                        A =:= undefined],
+            {ok, sort_by_initiated_at(All)}
+    end.
 
 %%====================================================================
 %% gen_server callbacks
@@ -133,6 +173,9 @@ terminate(_Reason, _State) -> ok.
 %%====================================================================
 %% Internal
 %%====================================================================
+
+table_exists(Table) ->
+    ets:info(Table) =/= undefined.
 
 sort_by_initiated_at(List) ->
     lists:sort(fun(A, B) ->

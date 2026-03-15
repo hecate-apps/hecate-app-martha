@@ -59,8 +59,7 @@
 	let { api }: { api: PluginApi } = $props();
 
 	let health: HealthData | null = $state(null);
-	let connectionStatus: 'connected' | 'connecting' | 'disconnected' = $state('connecting');
-	let pollTimer: ReturnType<typeof setInterval> | undefined;
+	let healthTimer: ReturnType<typeof setInterval> | undefined;
 
 	// --- Venture Browser state ---
 	let ventureName = $state('');
@@ -129,17 +128,15 @@
 	async function fetchHealth() {
 		try {
 			health = await api.get<HealthData>('/health');
-			connectionStatus = 'connected';
 		} catch {
 			health = null;
-			connectionStatus = 'disconnected';
 		}
 	}
 
 	onMount(async () => {
 		setApi(api);
 		fetchHealth();
-		pollTimer = setInterval(fetchHealth, 5000);
+		healthTimer = setInterval(fetchHealth, 30_000);
 		fetchActiveVenture();
 		fetchVentures();
 		const models = await fetchModels();
@@ -151,7 +148,7 @@
 	});
 
 	onDestroy(() => {
-		if (pollTimer) clearInterval(pollTimer);
+		if (healthTimer) clearInterval(healthTimer);
 		disconnectSSE();
 		if (cleanupActivity) cleanupActivity();
 	});
@@ -191,16 +188,16 @@
 					<!-- Connection status -->
 					<div class="flex items-center gap-1.5 text-[10px]">
 						<span
-							class="inline-block w-1.5 h-1.5 rounded-full {connectionStatus === 'connected'
+							class="inline-block w-1.5 h-1.5 rounded-full {$sseStatus === 'connected'
 								? 'bg-success-400'
-								: connectionStatus === 'connecting'
+								: $sseStatus === 'connecting'
 									? 'bg-yellow-400 animate-pulse'
 									: 'bg-danger-400'}"
 						></span>
 						<span class="text-surface-500">
-							{connectionStatus === 'connected'
+							{$sseStatus === 'connected'
 								? `v${health?.version ?? '?'}`
-								: connectionStatus}
+								: $sseStatus}
 						</span>
 					</div>
 
@@ -486,16 +483,16 @@
 			<!-- Connection status -->
 			<span class="flex items-center gap-1.5">
 				<span
-					class="inline-block w-1.5 h-1.5 rounded-full {connectionStatus === 'connected'
+					class="inline-block w-1.5 h-1.5 rounded-full {$sseStatus === 'connected'
 						? 'bg-success-400'
-						: connectionStatus === 'connecting'
+						: $sseStatus === 'connecting'
 							? 'bg-yellow-400 animate-pulse'
 							: 'bg-danger-400'}"
 				></span>
 				<span class="text-surface-500">
-					{connectionStatus === 'connected'
+					{$sseStatus === 'connected'
 						? `v${health?.version ?? '?'}`
-						: connectionStatus}
+						: $sseStatus}
 				</span>
 			</span>
 		</div>
