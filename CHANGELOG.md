@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.5] - 2026-03-15
+
+### Fixed
+
+- **Plugin loading timeout**: `routes/0` used `discover_routes/1` which scanned all
+  851 modules across 19 domain apps via `code:ensure_loaded/1`. This exceeded the
+  plugin loader's 30s timeout. Replaced with an explicit route table (~110 routes)
+  matching the pattern used by working plugins (snake-duel, scribe). Route discovery
+  is still available for standalone mode — individual handlers still export `routes/0`.
+
 ## [0.5.4] - 2026-03-15
 
 ### Fixed

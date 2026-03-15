@@ -53,8 +53,7 @@ init(#{plugin_name := PluginName, store_id := StoreId, data_dir := DataDir}) ->
     %% Start store subscriptions for all Martha stores
     AllStoreIds = [StoreId | [Id || {Id, _, _} <- ?EXTRA_STORES]],
     hecate_plugin_store:start_subscriptions(AllStoreIds),
-    %% Load OTP application metadata so application:get_key/2 works
-    %% for route discovery (hecate_plugin_routes:discover_routes/1).
+    %% Load OTP application metadata so modules are findable by the BEAM.
     lists:foreach(fun(App) -> application:load(App) end, ?DOMAIN_APPS),
     case app_martha_sup:start_link() of
         {ok, Pid} ->
@@ -76,8 +75,162 @@ init(#{plugin_name := PluginName, store_id := StoreId, data_dir := DataDir}) ->
 
 -spec routes() -> [{string(), module(), term()}].
 routes() ->
-    [hecate_plugin_routes:strip_api_prefix(R)
-     || R <- hecate_plugin_routes:discover_routes([hecate_app_marthad | ?DOMAIN_APPS])].
+    %% Explicit route table — no dynamic discovery.
+    %% Each handler still defines routes/0 for standalone use, but
+    %% plugin loading uses this list to avoid scanning 851 modules.
+    [
+     %% SSE (root app)
+     {"/events/stream", app_marthad_sse_handler, []},
+
+     %% === Query: Ventures ===
+     {"/venture",                                        get_active_venture_api, []},
+     {"/ventures",                                       get_ventures_page_api, []},
+     {"/ventures/:venture_id",                           get_venture_by_id_api, []},
+     {"/ventures/:venture_id/status",                    get_venture_status_api, []},
+     {"/ventures/:venture_id/tasks",                     get_venture_tasks_api, []},
+     {"/ventures/:venture_id/events",                    get_venture_events_page_api, []},
+     {"/ventures/:venture_id/divisions",                 get_discovered_divisions_page_api, []},
+     {"/ventures/:venture_id/storm/state",               get_storm_state_api, []},
+
+     %% === Query: Divisions ===
+     {"/divisions",                                      get_divisions_page_api, []},
+     {"/divisions/:division_id",                         get_division_by_id_api, []},
+     {"/divisions/:division_id/planning",                get_division_planning_api, []},
+     {"/divisions/:division_id/storming",                get_division_storming_api, []},
+     {"/divisions/:division_id/kanban",                  get_division_kanban_api, []},
+     {"/divisions/:division_id/kanban/cards",            get_division_kanban_cards_api, []},
+     {"/divisions/:division_id/crafting",                get_division_crafting_api, []},
+
+     %% NOTE: query_divisions also serves this under /ventures/:venture_id/divisions
+     %% but get_discovered_divisions_page_api (query_ventures) handles that path above.
+     %% This is the query_divisions version for divisions-by-venture:
+     %% Cowboy picks the first matching route, so this second registration is safe
+     %% only if they return the same data. Both exist for standalone-mode compat.
+
+     %% === Query: Agent Sessions ===
+     {"/agents/sessions",                                get_sessions_page_api, []},
+     {"/agents/sessions/active",                         get_active_sessions_api, []},
+     {"/agents/sessions/:session_id",                    get_session_by_id_api, []},
+     {"/agents/sessions/:session_id/turns",              get_session_turns_api, []},
+
+     %% === Query: Knowledge Graph ===
+     {"/knowledge-graph/:venture_id",                    get_knowledge_graph_api, []},
+     {"/knowledge-graph/:venture_id/entities",           get_entities_page_api, []},
+     {"/knowledge-graph/:venture_id/insights",           get_insights_page_api, []},
+     {"/knowledge-graph/:venture_id/search",             search_knowledge_graph_api, []},
+     {"/knowledge-graph/:venture_id/narrative",          get_venture_narrative_api, []},
+
+     %% === Query: Cost Budgets ===
+     {"/cost-budgets/:venture_id",                       get_cost_budget_api, []},
+     {"/cost-budgets",                                   get_cost_budget_api, []},
+
+     %% === Query: Retry Strategy ===
+     {"/retry-strategy/:venture_id",                     get_retry_history_api, []},
+     {"/retry-strategy/:venture_id/:session_id",         get_retry_history_api, []},
+
+     %% === CMD: Venture Lifecycle ===
+     {"/ventures/initiate",                              initiate_venture_api, []},
+     {"/ventures/:venture_id/archive",                   archive_venture_api, []},
+     {"/ventures/:venture_id/scaffold",                  scaffold_venture_repo_api, []},
+     %% Vision
+     {"/ventures/:venture_id/vision",                    submit_vision_api, []},
+     {"/ventures/:venture_id/vision/refine",             refine_vision_api, []},
+     %% Discovery
+     {"/ventures/:venture_id/discovery/start",           start_discovery_api, []},
+     {"/ventures/:venture_id/discovery/pause",           pause_discovery_api, []},
+     {"/ventures/:venture_id/discovery/resume",          resume_discovery_api, []},
+     {"/ventures/:venture_id/discovery/complete",        complete_discovery_api, []},
+     {"/ventures/:venture_id/discovery/identify",        identify_division_api, []},
+     %% Knowledge Preparation
+     {"/ventures/:venture_id/knowledge/prepare",         prepare_venture_knowledge_api, []},
+     {"/ventures/:venture_id/knowledge/brief",           contribute_research_brief_api, []},
+     {"/ventures/:venture_id/knowledge/complete",        complete_venture_preparation_api, []},
+     %% Big Picture Storm
+     {"/ventures/:venture_id/storm/start",               start_big_picture_storm_api, []},
+     {"/ventures/:venture_id/storm/shelve",              shelve_big_picture_storm_api, []},
+     {"/ventures/:venture_id/storm/resume",              resume_big_picture_storm_api, []},
+     {"/ventures/:venture_id/storm/archive",             archive_big_picture_storm_api, []},
+     {"/ventures/:venture_id/storm/phase/advance",       advance_storm_phase_api, []},
+     %% Storm Artifacts
+     {"/ventures/:venture_id/storm/fact",                draw_fact_arrow_api, []},
+     {"/ventures/:venture_id/storm/fact/:arrow_id/erase", erase_fact_arrow_api, []},
+     {"/ventures/:venture_id/storm/sticky",              post_event_sticky_api, []},
+     {"/ventures/:venture_id/storm/sticky/:sticky_id/stack",      stack_event_sticky_api, []},
+     {"/ventures/:venture_id/storm/sticky/:sticky_id/unstack",    unstack_event_sticky_api, []},
+     {"/ventures/:venture_id/storm/sticky/:sticky_id/pull",       pull_event_sticky_api, []},
+     {"/ventures/:venture_id/storm/sticky/:sticky_id/cluster",    cluster_event_sticky_api, []},
+     {"/ventures/:venture_id/storm/sticky/:sticky_id/uncluster",  uncluster_event_sticky_api, []},
+     %% Storm Clusters
+     {"/ventures/:venture_id/storm/cluster/:cluster_id/name",     name_event_cluster_api, []},
+     {"/ventures/:venture_id/storm/cluster/:cluster_id/promote",  promote_event_cluster_api, []},
+     {"/ventures/:venture_id/storm/cluster/:cluster_id/dissolve", dissolve_event_cluster_api, []},
+
+     %% === CMD: Division Lifecycle ===
+     {"/divisions/:division_id/initiate",                initiate_division_api, []},
+     {"/divisions/:division_id/archive",                 archive_division_api, []},
+     %% Planning
+     {"/plannings/:division_id/open",                    open_planning_api, []},
+     {"/plannings/:division_id/shelve",                  shelve_planning_api, []},
+     {"/plannings/:division_id/resume",                  resume_planning_api, []},
+     {"/plannings/:division_id/submit",                  submit_planning_api, []},
+     %% Storming (design)
+     {"/stormings/:division_id/design-event",            design_event_api, []},
+     {"/stormings/:division_id/design-aggregate",        design_aggregate_api, []},
+     {"/stormings/:division_id/plan-dependency",         plan_dependency_api, []},
+     {"/stormings/:division_id/plan-desk",               plan_desk_api, []},
+     %% Crafting
+     {"/craftings/:division_id/open",                    open_crafting_api, []},
+     {"/craftings/:division_id/shelve",                  shelve_crafting_api, []},
+     {"/craftings/:division_id/resume",                  resume_crafting_api, []},
+     {"/craftings/:division_id/generate-module",         generate_module_api, []},
+     {"/craftings/:division_id/generate-test",           generate_test_api, []},
+     {"/craftings/:division_id/run-test-suite",          run_test_suite_api, []},
+     {"/craftings/:division_id/record-test-result",      record_test_result_api, []},
+     {"/craftings/:division_id/stage-delivery",          stage_delivery_api, []},
+     {"/craftings/:division_id/deliver-release",         deliver_release_api, []},
+     %% Kanban Cards
+     {"/kanbans/:division_id/cards",                     post_kanban_card_api, []},
+     {"/kanbans/:division_id/cards/:card_id/pick",       pick_kanban_card_api, []},
+     {"/kanbans/:division_id/cards/:card_id/unpick",     unpick_kanban_card_api, []},
+     {"/kanbans/:division_id/cards/:card_id/park",       park_kanban_card_api, []},
+     {"/kanbans/:division_id/cards/:card_id/unpark",     unpark_kanban_card_api, []},
+     {"/kanbans/:division_id/cards/:card_id/block",      block_kanban_card_api, []},
+     {"/kanbans/:division_id/cards/:card_id/unblock",    unblock_kanban_card_api, []},
+     {"/kanbans/:division_id/cards/:card_id/finish",     finish_kanban_card_api, []},
+
+     %% === CMD: Agent Orchestration ===
+     {"/agents/sessions/archive",                        archive_agent_session_api, []},
+     %% Visionary
+     {"/agents/visionary/initiate",                      initiate_visionary_api, []},
+     {"/agents/visionary/gate/pass",                     pass_vision_gate_api, []},
+     {"/agents/visionary/gate/reject",                   reject_vision_gate_api, []},
+     %% Explorer
+     {"/agents/explorer/initiate",                       initiate_explorer_api, []},
+     {"/agents/explorer/gates/boundary-gate/pass",       pass_boundary_gate_api, []},
+     {"/agents/explorer/gates/boundary-gate/reject",     reject_boundary_gate_api, []},
+     %% Stormer
+     {"/agents/stormer/initiate",                        initiate_stormer_api, []},
+     {"/agents/stormer/gates/design-gate/pass",          pass_design_gate_api, []},
+     {"/agents/stormer/gates/design-gate/reject",        reject_design_gate_api, []},
+     %% Architect
+     {"/agents/architect/initiate",                      initiate_architect_api, []},
+     %% Coders
+     {"/agents/erlang_coder/initiate",                   initiate_erlang_coder_api, []},
+     {"/agents/svelte_coder/initiate",                   initiate_svelte_coder_api, []},
+     {"/agents/sql_coder/initiate",                      initiate_sql_coder_api, []},
+     %% Reviewer
+     {"/agents/reviewer/initiate",                       initiate_reviewer_api, []},
+     {"/agents/reviewer/gates/review-gate/pass",         pass_review_gate_api, []},
+     {"/agents/reviewer/gates/review-gate/reject",       reject_review_gate_api, []},
+     %% Tester
+     {"/agents/tester/initiate",                         initiate_tester_api, []},
+     %% Delivery Manager
+     {"/agents/delivery_manager/initiate",               initiate_delivery_manager_api, []},
+     %% Mentor
+     {"/agents/mentor/initiate",                         initiate_mentor_api, []},
+     %% Coordinator
+     {"/agents/coordinator/initiate",                    initiate_coordinator_api, []}
+    ].
 
 -spec store_config() -> #hecate_store_config{}.
 store_config() ->
@@ -96,7 +249,7 @@ manifest() ->
     #{
         name => <<"hecate-app-martha">>,
         display_name => <<"Martha">>,
-        version => <<"0.5.4">>,
+        version => <<"0.5.5">>,
         description => <<"AI-Assisted Application Lifecycle">>,
         icon => <<"dog2">>,
         tag => <<"martha-studio">>,
