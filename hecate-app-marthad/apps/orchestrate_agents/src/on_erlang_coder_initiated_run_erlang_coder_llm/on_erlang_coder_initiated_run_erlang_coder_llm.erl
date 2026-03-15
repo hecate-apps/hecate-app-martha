@@ -18,12 +18,13 @@ handle_event(_EventType, Event, _Metadata, State) ->
     VentureId = gv(venture_id, Data),
     Model = gv(model, Data),
     InputContext = gv(input_context, Data),
-    spawn_link(fun() -> run_llm(SessionId, VentureId, Model, InputContext) end),
+    RepoPath = lookup_repo_path(VentureId),
+    spawn_link(fun() -> run_llm(SessionId, VentureId, Model, InputContext, RepoPath) end),
     {ok, State}.
 
 %% Internal
 
-run_llm(SessionId, VentureId, Model, InputContext) ->
+run_llm(SessionId, VentureId, Model, InputContext, RepoPath) ->
     case load_agent_role:load(?ROLE) of
         {ok, RoleContent} ->
             {ok, KnowledgeCtx} = curate_context:curate(VentureId, ?ROLE, #{}),
@@ -38,7 +39,7 @@ run_llm(SessionId, VentureId, Model, InputContext) ->
             },
             case chat_to_llm:chat(Model, Messages, Opts) of
                 {ok, Response} ->
-                    handle_llm_success(SessionId, Response);
+                    handle_llm_success(SessionId, Response, RepoPath);
                 {error, Reason} ->
                     handle_llm_failure(SessionId, Reason)
             end;
@@ -46,11 +47,12 @@ run_llm(SessionId, VentureId, Model, InputContext) ->
             handle_llm_failure(SessionId, {role_load_failed, Reason})
     end.
 
-handle_llm_success(SessionId, Response) ->
+handle_llm_success(SessionId, Response, RepoPath) ->
     Content = extract_content(Response),
     TokensIn = extract_tokens_in(Response),
     TokensOut = extract_tokens_out(Response),
     {ParsedTerms, NotationOutput} = parse_notation(Content),
+    run_codegen(SessionId, ParsedTerms, RepoPath),
     CmdParams = #{
         session_id => SessionId,
         notation_output => NotationOutput,
@@ -93,6 +95,35 @@ handle_llm_failure(SessionId, Reason) ->
         {error, CmdErr} ->
             logger:error("[~s] failed to create fail command for ~s: ~p",
                         [?MODULE, SessionId, CmdErr])
+    end.
+
+run_codegen(_SessionId, [], _RepoPath) ->
+    ok;
+run_codegen(_SessionId, _ParsedTerms, undefined) ->
+    logger:info("[~s] skipping codegen: no repo_path for venture", [?MODULE]);
+run_codegen(SessionId, ParsedTerms, RepoPath) ->
+    try
+        case martha_codegen_bridge:scaffold(ParsedTerms, RepoPath) of
+            {ok, []} ->
+                logger:info("[~s] codegen: no scaffoldable terms in session ~s",
+                           [?MODULE, SessionId]);
+            {ok, Files} ->
+                logger:info("[~s] codegen: scaffolded ~b files for session ~s",
+                           [?MODULE, length(Files), SessionId])
+        end
+    catch Class:Reason:Stack ->
+        logger:warning("[~s] codegen failed for session ~s: ~p:~p~n~p",
+                      [?MODULE, SessionId, Class, Reason, Stack])
+    end.
+
+lookup_repo_path(VentureId) ->
+    try
+        case project_ventures_store:get_venture(VentureId) of
+            {ok, #{repo_path := Path}} when is_binary(Path) -> Path;
+            _ -> undefined
+        end
+    catch _:_ ->
+        undefined
     end.
 
 extract_content(#{message := #{content := C}}) -> C;
