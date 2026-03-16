@@ -1,6 +1,6 @@
 {application, martha, [
     {description, "Martha ALC - AI-Assisted Application Lifecycle"},
-    {vsn, "0.7.0"},
+    {vsn, "0.7.1"},
     {registered, [martha_sup]},
     {mod, {martha_app, []}},
     {applications, [kernel, stdlib, crypto, evoq, reckon_evoq, reckon_db, cowboy]},
