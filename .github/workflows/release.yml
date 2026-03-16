@@ -7,8 +7,49 @@ permissions:
   contents: write
 
 jobs:
+  frontend:
+    name: Frontend (check + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: hecate-app-marthaw
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: hecate-app-marthaw/package-lock.json
+      - run: npm ci
+      - run: npx svelte-kit sync && npx svelte-check --tsconfig ./tsconfig.json
+      - run: npm run build:lib
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: hecate-app-marthaw/dist/
+          retention-days: 1
+
+  daemon:
+    name: Daemon (compile + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: hecate-app-marthad
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27"
+          rebar3-version: "3.24"
+      - name: Fetch deps
+        run: rebar3 get-deps
+      - run: rebar3 compile
+      - run: rebar3 eunit
+      - run: rebar3 dialyzer || echo "::warning::Dialyzer reported warnings (non-fatal)"
+
   package:
-    name: Build plugin package
+    name: Build + publish release
+    needs: [frontend, daemon]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,16 +57,10 @@ jobs:
         with:
           otp-version: "27"
           rebar3-version: "3.24"
-      - uses: actions/setup-node@v4
+      - uses: actions/download-artifact@v4
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: hecate-app-marthaw/package-lock.json
-      - name: Build frontend
-        working-directory: hecate-app-marthaw
-        run: npm ci && npx svelte-kit sync && npm run build:lib
-      - name: Copy frontend assets
-        run: mkdir -p hecate-app-marthad/priv/static && cp -r hecate-app-marthaw/dist/* hecate-app-marthad/priv/static/
+          name: frontend-dist
+          path: hecate-app-marthad/priv/static/
       - name: Build plugin tarball
         run: bash hecate-app-marthad/scripts/package.sh
       - name: Extract version
