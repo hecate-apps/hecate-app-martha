@@ -3,7 +3,7 @@ import { getApi } from '../shared/api.js';
 import { divisions } from '../guide_venture/guide_venture.js';
 
 // --- Types ---
-export type BigPicturePhase = 'ready' | 'storm' | 'stack' | 'groom' | 'cluster' | 'name' | 'arrow' | 'map' | 'promote' | 'promoted' | 'shelved' | 'archived';
+export type BigPicturePhase = 'ready' | 'meditate' | 'storm' | 'stack' | 'groom' | 'cluster' | 'name' | 'arrow' | 'map' | 'promote' | 'promoted' | 'shelved' | 'archived';
 
 export interface BigPictureEvent {
 	sticky_id: string;
@@ -36,6 +36,33 @@ export interface StormState {
 	arrows: FactArrow[];
 }
 
+export type StormRole = 'domain_expert' | 'boundary_spotter' | 'security_expert' | 'ux_expert';
+
+export interface StormParticipant {
+	participant_id: string;
+	role: StormRole;
+	custom_instructions?: string;
+	registered_at?: number;
+}
+
+export type FindingType = 'domain_concept' | 'business_rule' | 'industry_pattern' | 'risk' | 'terminology' | 'prior_art';
+
+export interface MeditationFinding {
+	participant_id: string;
+	finding_type: FindingType;
+	content: string;
+	sources: { url: string; title: string; snippet: string }[];
+	contributed_at?: number;
+}
+
+export type MeditationStatus = 'idle' | 'searching' | 'reading' | 'synthesizing' | 'done';
+
+export interface ParticipantProgress {
+	participant_id: string;
+	status: MeditationStatus;
+	findings_count: number;
+}
+
 export interface RawEvent {
 	event_id: string;
 	event_type: string;
@@ -56,6 +83,13 @@ export const showEventStream = writable<boolean>(false);
 export const stormError = writable<string | null>(null);
 export const isLoading = writable(false);
 let highOctaneTimer: ReturnType<typeof setInterval> | null = null;
+
+// --- Meditation State ---
+export const stormParticipants = writable<StormParticipant[]>([]);
+export const meditationFindings = writable<MeditationFinding[]>([]);
+export const meditationRemaining = writable<number>(300); // 5 minutes
+export const participantProgress = writable<ParticipantProgress[]>([]);
+let meditationTimer: ReturnType<typeof setInterval> | null = null;
 
 // --- Derived ---
 export const unclusteredEvents = derived(
@@ -87,14 +121,21 @@ export const bigPictureEventCount = derived(
 export async function fetchStormState(ventureId: string): Promise<void> {
 	try {
 		const api = getApi();
-		const resp = await api.get<{ storm: StormState }>(
-			`/get_storm_state/${ventureId}`
-		);
+		const resp = await api.get<{
+			storm: StormState & {
+				participants?: StormParticipant[];
+				meditation_findings?: MeditationFinding[];
+				participant_progress?: ParticipantProgress[];
+			};
+		}>(`/get_storm_state/${ventureId}`);
 		const s = resp.storm;
 		bigPicturePhase.set(s.phase);
 		bigPictureEvents.set(s.stickies);
 		eventClusters.set(s.clusters);
 		factArrows.set(s.arrows);
+		if (s.participants) stormParticipants.set(s.participants);
+		if (s.meditation_findings) meditationFindings.set(s.meditation_findings);
+		if (s.participant_progress) participantProgress.set(s.participant_progress);
 	} catch {
 		bigPicturePhase.set('ready');
 	}
@@ -427,15 +468,150 @@ export async function promoteAllClusters(ventureId: string): Promise<boolean> {
 	return allOk;
 }
 
+// --- Meditation Actions ---
+
+export async function registerStormParticipant(
+	ventureId: string,
+	role: StormRole,
+	customInstructions?: string
+): Promise<boolean> {
+	try {
+		const api = getApi();
+		const participantId = crypto.randomUUID();
+		await api.post(`/register_storm_participant/${ventureId}`, {
+			participant_id: participantId,
+			role,
+			custom_instructions: customInstructions ?? ''
+		});
+		stormParticipants.update((ps) => [
+			...ps,
+			{ participant_id: participantId, role, custom_instructions: customInstructions }
+		]);
+		return true;
+	} catch (e: unknown) {
+		const err = e as { message?: string };
+		stormError.set(err.message || 'Failed to register participant');
+		return false;
+	}
+}
+
+export async function unregisterStormParticipant(
+	ventureId: string,
+	participantId: string
+): Promise<boolean> {
+	try {
+		const api = getApi();
+		await api.post(
+			`/unregister_storm_participant/${ventureId}/${participantId}`,
+			{}
+		);
+		stormParticipants.update((ps) =>
+			ps.filter((p) => p.participant_id !== participantId)
+		);
+		return true;
+	} catch (e: unknown) {
+		const err = e as { message?: string };
+		stormError.set(err.message || 'Failed to unregister participant');
+		return false;
+	}
+}
+
+export async function startDomainMeditation(ventureId: string): Promise<boolean> {
+	try {
+		isLoading.set(true);
+		const api = getApi();
+		await api.post(`/start_domain_meditation/${ventureId}`, {});
+		bigPicturePhase.set('meditate');
+		meditationRemaining.set(300);
+		meditationFindings.set([]);
+		participantProgress.update((pp) =>
+			get(stormParticipants).map((p) => ({
+				participant_id: p.participant_id,
+				status: 'searching' as MeditationStatus,
+				findings_count: 0
+			}))
+		);
+		meditationTimer = setInterval(() => {
+			meditationRemaining.update((t) => {
+				if (t <= 1) {
+					if (meditationTimer) {
+						clearInterval(meditationTimer);
+						meditationTimer = null;
+					}
+					completeDomainMeditation(ventureId);
+					return 0;
+				}
+				return t - 1;
+			});
+		}, 1000);
+		startMeditationPolling(ventureId);
+		return true;
+	} catch (e: unknown) {
+		const err = e as { message?: string };
+		stormError.set(err.message || 'Failed to start meditation');
+		return false;
+	} finally {
+		isLoading.set(false);
+	}
+}
+
+export async function completeDomainMeditation(ventureId: string): Promise<boolean> {
+	try {
+		if (meditationTimer) {
+			clearInterval(meditationTimer);
+			meditationTimer = null;
+		}
+		stopMeditationPolling();
+		const api = getApi();
+		await api.post(`/complete_domain_meditation/${ventureId}`, {});
+		bigPicturePhase.set('ready');
+		return true;
+	} catch (e: unknown) {
+		const err = e as { message?: string };
+		stormError.set(err.message || 'Failed to complete meditation');
+		return false;
+	}
+}
+
+// Polling for meditation progress + findings
+let meditationPollTimer: ReturnType<typeof setInterval> | null = null;
+
+function startMeditationPolling(ventureId: string): void {
+	stopMeditationPolling();
+	meditationPollTimer = setInterval(async () => {
+		try {
+			await fetchStormState(ventureId);
+		} catch {
+			// Silently continue polling
+		}
+	}, 3000);
+}
+
+function stopMeditationPolling(): void {
+	if (meditationPollTimer) {
+		clearInterval(meditationPollTimer);
+		meditationPollTimer = null;
+	}
+}
+
 export function resetBigPicture(): void {
 	if (highOctaneTimer) {
 		clearInterval(highOctaneTimer);
 		highOctaneTimer = null;
 	}
+	if (meditationTimer) {
+		clearInterval(meditationTimer);
+		meditationTimer = null;
+	}
+	stopMeditationPolling();
 	bigPicturePhase.set('ready');
 	bigPictureEvents.set([]);
 	eventClusters.set([]);
 	factArrows.set([]);
 	ventureRawEvents.set([]);
 	highOctaneRemaining.set(600);
+	stormParticipants.set([]);
+	meditationFindings.set([]);
+	meditationRemaining.set(300);
+	participantProgress.set([]);
 }

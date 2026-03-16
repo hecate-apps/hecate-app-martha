@@ -29,10 +29,19 @@
 		resetBigPicture,
 		fetchStormState,
 		isLoading,
+		stormParticipants,
+		meditationFindings,
+		meditationRemaining,
+		participantProgress,
+		registerStormParticipant,
+		unregisterStormParticipant,
+		startDomainMeditation,
+		completeDomainMeditation,
 		type BigPictureEvent,
-		type EventCluster
+		type EventCluster,
+		type StormRole
 	} from '$lib/storm_venture_big_picture/storm_venture_big_picture.js';
-	import { bigPictureAgents } from '$lib/shared/agentsStore.js';
+	import { bigPictureAgents, STORM_ROLES } from '$lib/shared/agentsStore.js';
 	import { openAIAssist } from '$lib/shared/aiStore.js';
 
 	let eventInput = $state('');
@@ -46,6 +55,11 @@
 
 	// Drag state
 	let draggingEvent = $state<string | null>(null);
+
+	// Participant registration state
+	let selectedRole = $state<StormRole>('domain_expert');
+	let customInstructions = $state('');
+	let showAddParticipant = $state(false);
 
 	// Groom: selected canonical sticky per stack
 	let groomSelections = $state<Record<string, string>>({});
@@ -120,6 +134,17 @@
 	function vid(): string {
 		return $activeVenture?.venture_id ?? '';
 	}
+
+	// Group stickies by author for swimlanes during storm phase
+	let eventsByAuthor = $derived.by(() => {
+		const groups = new Map<string, BigPictureEvent[]>();
+		for (const evt of $bigPictureEvents) {
+			const author = evt.author || 'user';
+			if (!groups.has(author)) groups.set(author, []);
+			groups.get(author)!.push(evt);
+		}
+		return groups;
+	});
 
 	function formatTime(seconds: number): string {
 		const m = Math.floor(seconds / 60);
@@ -213,6 +238,7 @@
 
 	// Phase progression labels
 	const PHASE_STEPS = [
+		{ phase: 'meditate', label: 'Meditate', icon: '\u{1F9D8}' },
 		{ phase: 'storm', label: 'Storm', icon: '\u{26A1}' },
 		{ phase: 'stack', label: 'Stack', icon: '\u{2261}' },
 		{ phase: 'groom', label: 'Groom', icon: '\u{2702}' },
@@ -286,6 +312,19 @@
 				</span>
 			{/if}
 
+			{#if $bigPicturePhase === 'meditate'}
+				<span
+					class="text-sm font-bold tabular-nums ml-2
+						{$meditationRemaining <= 30
+						? 'text-health-err animate-pulse'
+						: $meditationRemaining <= 60
+							? 'text-health-warn'
+							: 'text-hecate-300'}"
+				>
+					{formatTime($meditationRemaining)}
+				</span>
+			{/if}
+
 			{#if $bigPicturePhase !== 'ready' && $bigPicturePhase !== 'promoted' && $bigPicturePhase !== 'shelved'}
 				<button
 					onclick={() => showEventStream.update((v) => !v)}
@@ -314,31 +353,133 @@
 		{phaseTransition ? 'opacity-0' : 'opacity-100'}">
 		<!-- PHASE: READY -->
 		{#if $bigPicturePhase === 'ready'}
-			<div class="flex items-center justify-center h-full">
-				<div class="text-center max-w-lg mx-4">
-					<div class="text-4xl mb-4 text-es-event">{'\u{26A1}'}</div>
-					<h2 class="text-lg font-semibold text-surface-100 mb-3">
-						Big Picture Event Storming
-					</h2>
-					<p class="text-xs text-surface-400 leading-relaxed mb-6">
-						Discover the domain landscape by storming events onto the board.
-						Start with a 10-minute high octane phase where everyone
-						(including AI agents) throws domain events as fast as possible.
-						<br /><br />
-						Volume over quality. The thick stacks reveal what matters.
-						Natural clusters become your divisions (bounded contexts).
-					</p>
+			<div class="flex flex-col h-full">
+				<div class="flex-1 overflow-y-auto p-4">
+					<div class="max-w-2xl mx-auto">
+						<div class="text-center mb-6">
+							<div class="text-4xl mb-4 text-es-event">{'\u{26A1}'}</div>
+							<h2 class="text-lg font-semibold text-surface-100 mb-3">
+								Big Picture Event Storming
+							</h2>
+							<p class="text-xs text-surface-400 leading-relaxed">
+								Before storming, prepare your team. Register AI participants who will
+								meditate on the domain — researching industry patterns, boundaries,
+								and risks. Then start a 5-minute meditation phase before the storm.
+							</p>
+						</div>
 
-					<div class="flex flex-col items-center gap-4">
-						<button
-							onclick={() => startBigPictureStorm(vid())}
-							class="px-6 py-3 rounded-lg text-sm font-medium
-								bg-es-event text-surface-50 hover:bg-es-event/90
-								transition-colors shadow-lg shadow-es-event/20"
-						>
-							{'\u{26A1}'} Start High Octane (10 min)
-						</button>
+						<!-- Participant Registration -->
+						<div class="mb-6">
+							<div class="flex items-center justify-between mb-3">
+								<h3 class="text-xs font-semibold text-surface-200 uppercase tracking-wider">
+									Storm Participants ({$stormParticipants.length})
+								</h3>
+								<button
+									onclick={() => (showAddParticipant = !showAddParticipant)}
+									class="text-[10px] px-2 py-1 rounded transition-colors
+										bg-hecate-600/20 text-hecate-300 hover:bg-hecate-600/30"
+								>
+									{showAddParticipant ? 'Cancel' : '+ Add Participant'}
+								</button>
+							</div>
 
+							{#if showAddParticipant}
+								<div class="rounded-lg border border-surface-600 bg-surface-800 p-4 mb-3">
+									<div class="grid grid-cols-2 gap-3 mb-3">
+										{#each STORM_ROLES as roleDef}
+											<button
+												onclick={() => (selectedRole = roleDef.role as StormRole)}
+												class="text-left p-3 rounded-lg border transition-colors
+													{selectedRole === roleDef.role
+													? 'border-hecate-500/60 bg-hecate-600/10'
+													: 'border-surface-600 hover:border-surface-500'}"
+											>
+												<div class="flex items-center gap-2 mb-1">
+													<span class="text-sm">{roleDef.icon}</span>
+													<span class="text-xs font-medium text-surface-100">{roleDef.name}</span>
+												</div>
+												<p class="text-[9px] text-surface-400 leading-relaxed">
+													{roleDef.description}
+												</p>
+											</button>
+										{/each}
+									</div>
+
+									<div class="mb-3">
+										<label class="text-[9px] text-surface-400 block mb-1">
+											Custom Instructions (optional)
+										</label>
+										<input
+											bind:value={customInstructions}
+											placeholder="e.g., Focus on healthcare compliance..."
+											class="w-full bg-surface-700 border border-surface-600 rounded px-3 py-2
+												text-xs text-surface-100 placeholder-surface-400
+												focus:outline-none focus:border-hecate-500"
+										/>
+									</div>
+
+									<button
+										onclick={async () => {
+											const ok = await registerStormParticipant(
+												vid(),
+												selectedRole,
+												customInstructions || undefined
+											);
+											if (ok) {
+												showAddParticipant = false;
+												customInstructions = '';
+											}
+										}}
+										class="w-full text-xs py-2 rounded transition-colors
+											bg-hecate-600/20 text-hecate-300 hover:bg-hecate-600/30"
+									>
+										Register Participant
+									</button>
+								</div>
+							{/if}
+
+							<!-- Registered Participants List -->
+							{#if $stormParticipants.length > 0}
+								<div class="space-y-2">
+									{#each $stormParticipants as participant}
+										{@const roleDef = STORM_ROLES.find((r) => r.role === participant.role)}
+										<div class="flex items-center gap-3 px-3 py-2 rounded-lg
+											bg-surface-800 border border-surface-600">
+											<span class="text-sm">{roleDef?.icon ?? '\u{25CB}'}</span>
+											<div class="flex-1 min-w-0">
+												<div class="text-xs font-medium text-surface-100">
+													{roleDef?.name ?? participant.role}
+												</div>
+												{#if participant.custom_instructions}
+													<div class="text-[9px] text-surface-400 truncate">
+														{participant.custom_instructions}
+													</div>
+												{/if}
+											</div>
+											<button
+												onclick={() =>
+													unregisterStormParticipant(vid(), participant.participant_id)}
+												class="text-[9px] text-surface-500 hover:text-health-err transition-colors"
+												title="Remove participant"
+											>
+												{'\u{2715}'}
+											</button>
+										</div>
+									{/each}
+								</div>
+							{:else}
+								<div class="text-center py-6 text-surface-500 text-xs
+									border border-dashed border-surface-600 rounded-lg">
+									No participants registered yet. Add at least one to begin meditation.
+								</div>
+							{/if}
+						</div>
+					</div>
+				</div>
+
+				<!-- Footer with action buttons -->
+				<div class="border-t border-surface-600 p-3 shrink-0">
+					<div class="flex items-center justify-between">
 						<div class="flex gap-2">
 							{#each $bigPictureAgents as agent}
 								<button
@@ -357,6 +498,155 @@
 								</button>
 							{/each}
 						</div>
+
+						<div class="flex gap-2">
+							<button
+								onclick={() => startDomainMeditation(vid())}
+								disabled={$stormParticipants.length === 0 || $isLoading}
+								class="px-4 py-2 rounded-lg text-xs font-medium transition-colors
+									{$stormParticipants.length > 0 && !$isLoading
+									? 'bg-hecate-600 text-surface-50 hover:bg-hecate-500 shadow-lg shadow-hecate-600/20'
+									: 'bg-surface-700 text-surface-500 cursor-not-allowed'}"
+							>
+								{'\u{1F9D8}'} Start Meditation (5 min)
+							</button>
+							<button
+								onclick={() => startBigPictureStorm(vid())}
+								class="px-4 py-2 rounded-lg text-xs font-medium
+									bg-es-event/80 text-surface-50 hover:bg-es-event
+									transition-colors"
+								title="Skip meditation and go straight to storm"
+							>
+								{'\u{26A1}'} Skip to Storm
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+		<!-- PHASE: MEDITATE (Domain Research) -->
+		{:else if $bigPicturePhase === 'meditate'}
+			<div class="flex flex-col h-full">
+				<div class="flex-1 overflow-y-auto p-4">
+					<div class="max-w-3xl mx-auto">
+						<div class="text-center mb-6">
+							<h2 class="text-sm font-semibold text-surface-100 mb-1">
+								Domain Meditation in Progress
+							</h2>
+							<p class="text-[10px] text-surface-400">
+								Participants are researching the domain. Findings will enrich the knowledge graph.
+							</p>
+						</div>
+
+						<!-- Participant Swimlanes -->
+						<div class="space-y-4 mb-6">
+							{#each $stormParticipants as participant}
+								{@const roleDef = STORM_ROLES.find((r) => r.role === participant.role)}
+								{@const progress = $participantProgress.find(
+									(p) => p.participant_id === participant.participant_id
+								)}
+								{@const findings = $meditationFindings.filter(
+									(f) => f.participant_id === participant.participant_id
+								)}
+
+								<div class="rounded-lg border border-surface-600 bg-surface-800 overflow-hidden">
+									<!-- Participant header -->
+									<div class="flex items-center gap-2 px-4 py-2 border-b border-surface-700">
+										<span class="text-sm">{roleDef?.icon ?? '\u{25CB}'}</span>
+										<span class="text-xs font-medium text-surface-100">
+											{roleDef?.name ?? participant.role}
+										</span>
+										{#if participant.custom_instructions}
+											<span class="text-[9px] text-surface-400 truncate flex-1">
+												— {participant.custom_instructions}
+											</span>
+										{/if}
+										<div class="flex items-center gap-2">
+											{#if progress}
+												<span class="text-[9px] px-2 py-0.5 rounded-full
+													{progress.status === 'done'
+													? 'bg-health-ok/20 text-health-ok'
+													: progress.status === 'synthesizing'
+														? 'bg-hecate-600/20 text-hecate-300'
+														: 'bg-es-event/20 text-es-event'}">
+													{progress.status === 'searching' ? 'Searching...' :
+													 progress.status === 'reading' ? 'Reading...' :
+													 progress.status === 'synthesizing' ? 'Synthesizing...' :
+													 progress.status === 'done' ? 'Complete' : 'Waiting...'}
+												</span>
+											{:else}
+												<span class="text-[9px] px-2 py-0.5 rounded-full
+													bg-es-event/20 text-es-event animate-pulse">
+													Researching...
+												</span>
+											{/if}
+											<span class="text-[9px] text-surface-400">
+												{findings.length} findings
+											</span>
+										</div>
+									</div>
+
+									<!-- Findings cards -->
+									{#if findings.length > 0}
+										<div class="p-3 space-y-2">
+											{#each findings as finding}
+												<div class="px-3 py-2 rounded bg-surface-700/50 border border-surface-600">
+													<div class="flex items-center gap-2 mb-1">
+														<span class="text-[8px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wider
+															{finding.finding_type === 'risk'
+															? 'bg-health-err/20 text-health-err'
+															: finding.finding_type === 'terminology'
+																? 'bg-hecate-600/20 text-hecate-300'
+																: 'bg-es-event/20 text-es-event'}">
+															{finding.finding_type.replace('_', ' ')}
+														</span>
+													</div>
+													<p class="text-[10px] text-surface-200 leading-relaxed">
+														{finding.content}
+													</p>
+													{#if finding.sources?.length > 0}
+														<div class="mt-1.5 flex flex-wrap gap-1">
+															{#each finding.sources as source}
+																<a
+																	href={source.url}
+																	target="_blank"
+																	rel="noopener noreferrer"
+																	class="text-[8px] text-hecate-400/70 hover:text-hecate-300
+																		truncate max-w-[200px]"
+																	title={source.title}
+																>
+																	{source.title || source.url}
+																</a>
+															{/each}
+														</div>
+													{/if}
+												</div>
+											{/each}
+										</div>
+									{:else}
+										<div class="px-4 py-3 text-[10px] text-surface-500 italic">
+											Waiting for findings...
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					</div>
+				</div>
+
+				<!-- Footer controls -->
+				<div class="border-t border-surface-600 p-3 shrink-0">
+					<div class="flex items-center justify-between">
+						<span class="text-[10px] text-surface-400">
+							{$meditationFindings.length} total findings
+						</span>
+						<button
+							onclick={() => completeDomainMeditation(vid())}
+							class="text-[10px] px-4 py-1.5 rounded font-medium transition-colors
+								bg-es-event text-surface-50 hover:bg-es-event/90"
+						>
+							Complete Meditation {'\u{2192}'} Storm
+						</button>
 					</div>
 				</div>
 			</div>
@@ -366,67 +656,92 @@
 			<div class="flex flex-col h-full">
 				<!-- Event stream display (scattered post-it wall) -->
 				<div class="flex-1 overflow-y-auto p-4">
-					<div class="flex flex-wrap gap-2 content-start storm-board">
-						{#each $bigPictureEvents as evt (evt.sticky_id)}
-							{@const sc = getScatter(evt.sticky_id)}
-							<div
-								class="group relative px-3 py-2 rounded text-xs
-									bg-es-event/15 border border-es-event/30 text-surface-100
-									hover:border-es-event/50 transition-all duration-200
-									storm-sticky"
-								style="transform: rotate({sc.rotate}deg) translate({sc.dx}px, {sc.dy}px)"
-							>
-								<span>{evt.text}</span>
-								<span class="text-[8px] text-es-event/60 ml-1.5">
-									{evt.author === 'user' ? '' : evt.author}
-								</span>
-								<button
-									onclick={() => pullEventSticky(vid(), evt.sticky_id)}
-									class="absolute -top-1 -right-1 w-4 h-4 rounded-full
-										bg-surface-700 border border-surface-600
-										text-surface-400 hover:text-health-err
-										text-[8px] flex items-center justify-center
-										opacity-0 group-hover:opacity-100 transition-opacity"
-								>
-									{'\u{2715}'}
-								</button>
+					<div class="storm-board space-y-4">
+						{#each [...eventsByAuthor.entries()] as [author, events] (author)}
+							<div class="swimlane">
+								<div class="flex items-center gap-2 mb-2 px-1">
+									<span class="text-[10px] font-medium uppercase tracking-wider
+										{author === 'user' ? 'text-hecate-300' : 'text-es-event/70'}">
+										{author === 'user' ? 'You' : author}
+									</span>
+									<span class="text-[9px] text-surface-500">
+										{events.length}
+									</span>
+									<div class="flex-1 border-t border-surface-700/50"></div>
+								</div>
+								<div class="flex flex-wrap gap-2 content-start">
+									{#each events as evt (evt.sticky_id)}
+										{@const sc = getScatter(evt.sticky_id)}
+										<div
+											class="group relative px-3 py-2 rounded text-xs
+												bg-es-event/90 border border-es-event text-surface-950
+												hover:bg-es-event transition-all duration-200
+												storm-sticky"
+											style="--rotate: {sc.rotate}deg; --dx: {sc.dx}px; --dy: {sc.dy}px;
+												transform: rotate({sc.rotate}deg) translate({sc.dx}px, {sc.dy}px)"
+										>
+											<span>{evt.text}</span>
+											<button
+												onclick={() => pullEventSticky(vid(), evt.sticky_id)}
+												class="absolute -top-1 -right-1 w-4 h-4 rounded-full
+													bg-surface-700 border border-surface-600
+													text-surface-400 hover:text-health-err
+													text-[8px] flex items-center justify-center
+													opacity-0 group-hover:opacity-100 transition-opacity"
+											>
+												{'\u{2715}'}
+											</button>
+										</div>
+									{/each}
+								</div>
 							</div>
 						{/each}
 
 						<!-- Ghost stickies from AI Oracle -->
-						{#each ghostStickies as ghost (ghost.id)}
-							<div
-								class="group relative px-3 py-2 rounded text-xs
-									border-2 border-dashed border-es-event/40 text-surface-300
-									opacity-50 hover:opacity-80 transition-all duration-200
-									storm-sticky ghost-sticky"
-								style="transform: rotate({(Math.random() - 0.5) * 4}deg)"
-							>
-								<span class="italic">{ghost.text}</span>
-								<span class="text-[8px] text-es-event/40 ml-1.5">oracle</span>
-								<div class="absolute -top-1 -right-1 flex gap-0.5
-									opacity-0 group-hover:opacity-100 transition-opacity">
-									<button
-										onclick={() => acceptGhost(ghost)}
-										class="w-4 h-4 rounded-full bg-health-ok/20 border border-health-ok/40
-											text-health-ok text-[8px] flex items-center justify-center
-											hover:bg-health-ok/30"
-										title="Accept"
-									>
-										{'\u{2713}'}
-									</button>
-									<button
-										onclick={() => dismissGhost(ghost)}
-										class="w-4 h-4 rounded-full bg-surface-700 border border-surface-600
-											text-surface-400 hover:text-health-err
-											text-[8px] flex items-center justify-center"
-										title="Dismiss"
-									>
-										{'\u{2715}'}
-									</button>
+						{#if ghostStickies.length > 0}
+							<div class="swimlane">
+								<div class="flex items-center gap-2 mb-2 px-1">
+									<span class="text-[10px] font-medium uppercase tracking-wider text-es-event/40">
+										Oracle suggestions
+									</span>
+									<div class="flex-1 border-t border-surface-700/50"></div>
+								</div>
+								<div class="flex flex-wrap gap-2 content-start">
+									{#each ghostStickies as ghost (ghost.id)}
+										<div
+											class="group relative px-3 py-2 rounded text-xs
+												border-2 border-dashed border-es-event/40 text-surface-300
+												opacity-50 hover:opacity-80 transition-all duration-200
+												storm-sticky ghost-sticky"
+											style="transform: rotate({(Math.random() - 0.5) * 4}deg)"
+										>
+											<span class="italic">{ghost.text}</span>
+											<div class="absolute -top-1 -right-1 flex gap-0.5
+												opacity-0 group-hover:opacity-100 transition-opacity">
+												<button
+													onclick={() => acceptGhost(ghost)}
+													class="w-4 h-4 rounded-full bg-health-ok/20 border border-health-ok/40
+														text-health-ok text-[8px] flex items-center justify-center
+														hover:bg-health-ok/30"
+													title="Accept"
+												>
+													{'\u{2713}'}
+												</button>
+												<button
+													onclick={() => dismissGhost(ghost)}
+													class="w-4 h-4 rounded-full bg-surface-700 border border-surface-600
+														text-surface-400 hover:text-health-err
+														text-[8px] flex items-center justify-center"
+													title="Dismiss"
+												>
+													{'\u{2715}'}
+												</button>
+											</div>
+										</div>
+									{/each}
 								</div>
 							</div>
-						{/each}
+						{/if}
 
 						{#if $bigPictureEvents.length === 0 && ghostStickies.length === 0}
 							<div class="text-surface-500 text-xs italic">
@@ -527,12 +842,12 @@
 											}
 										}}
 										class="group flex items-center gap-1.5 px-2 py-1.5 rounded text-[11px]
-											bg-es-event/15 border border-es-event/30 text-surface-100
-											cursor-grab active:cursor-grabbing hover:border-es-event/50"
+											bg-es-event/90 border border-es-event text-surface-950
+											cursor-grab active:cursor-grabbing hover:bg-es-event"
 									>
 										<span class="flex-1 truncate">{evt.text}</span>
 										{#if evt.weight > 1}
-											<span class="text-[8px] px-1 rounded bg-es-event/20 text-es-event">
+											<span class="text-[8px] px-1 rounded bg-surface-900/30 text-surface-950">
 												x{evt.weight}
 											</span>
 										{/if}
@@ -574,7 +889,7 @@
 											{#each stackEvents as evt (evt.sticky_id)}
 												<div
 													class="group flex items-center gap-1 px-2 py-1 rounded text-[10px]
-														bg-es-event/10 text-surface-200"
+														bg-es-event/80 text-surface-950"
 												>
 													<span class="flex-1 truncate">{evt.text}</span>
 													<button
@@ -722,7 +1037,7 @@
 									{#each freeStickies as evt (evt.sticky_id)}
 										<span
 											class="text-[10px] px-2 py-1 rounded
-												bg-es-event/10 text-surface-200"
+												bg-es-event/80 text-surface-950"
 										>
 											{evt.text}
 											{#if evt.weight > 1}
@@ -782,12 +1097,12 @@
 											}
 										}}
 										class="group flex items-center gap-1.5 px-2 py-1.5 rounded text-[11px]
-											bg-es-event/15 border border-es-event/30 text-surface-100
-											cursor-grab active:cursor-grabbing hover:border-es-event/50"
+											bg-es-event/90 border border-es-event text-surface-950
+											cursor-grab active:cursor-grabbing hover:bg-es-event"
 									>
 										<span class="flex-1 truncate">{evt.text}</span>
 										{#if evt.weight > 1}
-											<span class="text-[8px] px-1 rounded bg-es-event/20 text-es-event">
+											<span class="text-[8px] px-1 rounded bg-surface-900/30 text-surface-950">
 												x{evt.weight}
 											</span>
 										{/if}
@@ -856,14 +1171,14 @@
 													ondragend={() =>
 														(draggingEvent = null)}
 													class="group flex items-center gap-1 px-2 py-1 rounded text-[10px]
-														bg-es-event/10 text-surface-200
+														bg-es-event/80 text-surface-950
 														cursor-grab active:cursor-grabbing"
 												>
 													<span class="flex-1 truncate"
 														>{evt.text}</span
 													>
 													{#if evt.weight > 1}
-														<span class="text-[8px] text-es-event/60">
+														<span class="text-[8px] text-surface-950/60">
 															x{evt.weight}
 														</span>
 													{/if}
@@ -1251,6 +1566,12 @@
 	/* Storm phase: stickies animate to aligned grid on phase change */
 	:global(.storm-board .storm-sticky) {
 		transition: transform 0.5s ease, opacity 0.3s ease;
+		animation: sticky-throw 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+	}
+
+	@keyframes sticky-throw {
+		0% { opacity: 0; transform: scale(0.3) rotate(-8deg) translateY(-30px); }
+		100% { opacity: 1; transform: scale(1) rotate(var(--rotate, 0deg)) translate(var(--dx, 0px), var(--dy, 0px)); }
 	}
 
 	/* Ghost stickies: translucent dashed border, subtle float */

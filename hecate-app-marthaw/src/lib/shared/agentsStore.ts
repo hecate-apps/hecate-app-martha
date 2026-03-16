@@ -94,6 +94,46 @@ const FALLBACK_DESIGN_LEVEL: AgentPrompt[] = [
 	}
 ];
 
+// --- Storm Role Definitions (for participant registration UI) ---
+export interface StormRoleDef {
+	role: string;
+	name: string;
+	icon: string;
+	description: string;
+	meditationFocus: string;
+}
+
+export const STORM_ROLES: StormRoleDef[] = [
+	{
+		role: 'domain_expert',
+		name: 'Domain Expert',
+		icon: '\u{25C7}',
+		description: 'Industry patterns, business rules, vocabulary, prior art',
+		meditationFocus: 'Research industry patterns, business rules, domain vocabulary, and prior art'
+	},
+	{
+		role: 'boundary_spotter',
+		name: 'Boundary Spotter',
+		icon: '\u{25B3}',
+		description: 'System boundaries, integration patterns, architectural constraints',
+		meditationFocus: 'Identify system boundaries, integration patterns, and architectural constraints'
+	},
+	{
+		role: 'security_expert',
+		name: 'Security Expert',
+		icon: '\u{26A0}',
+		description: 'Compliance, threat models, auth patterns, data privacy',
+		meditationFocus: 'Research compliance requirements, threat models, and security patterns'
+	},
+	{
+		role: 'ux_expert',
+		name: 'UX Expert',
+		icon: '\u{2B50}',
+		description: 'User journeys, interaction patterns, accessibility',
+		meditationFocus: 'Research user journeys, interaction patterns, and accessibility requirements'
+	}
+];
+
 // --- Stores ---
 export const bigPictureAgents = writable<AgentPrompt[]>(FALLBACK_BIG_PICTURE);
 export const designLevelAgents = writable<AgentPrompt[]>(FALLBACK_DESIGN_LEVEL);
