@@ -3513,9 +3513,9 @@ async function lo(e, t) {
 async function uo(e, t, a, n, c) {
   try {
     return Et.set(!0), await Ze().post(`/scaffold_venture_repo/${e}`, {
-      repo_url: t,
-      vision: a || void 0,
-      name: n || void 0,
+      repo_path: t,
+      vision_content: a || void 0,
+      venture_name: n || void 0,
       brief: c || void 0
     }), await kr(), !0;
   } catch (l) {

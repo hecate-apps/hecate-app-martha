@@ -131,9 +131,9 @@ export async function scaffoldVentureRepo(
 		isLoading.set(true);
 		const api = getApi();
 		await api.post(`/scaffold_venture_repo/${ventureId}`, {
-			repo_url: repoPath,
-			vision: vision || undefined,
-			name: name || undefined,
+			repo_path: repoPath,
+			vision_content: vision || undefined,
+			venture_name: name || undefined,
 			brief: brief || undefined
 		});
 		await fetchActiveVenture();
