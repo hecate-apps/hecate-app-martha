@@ -1,7 +1,7 @@
-%%% @doc Loads agent role definitions from the hecate-agents repository.
+%%% @doc Loads agent role definitions from the hecate-corpus repository.
 %%%
-%%% Reads role files from the daemon's local clone of hecate-agents
-%%% at $HECATE_HOME/hecate-agents/roles/. Role files are markdown
+%%% Reads role files from the daemon's local clone of hecate-corpus
+%%% at $HECATE_HOME/hecate-corpus/roles/. Role files are markdown
 %%% with YAML front matter.
 %%%
 %%% Supports both flat names ("visionary") and nested ("storm/domain_expert").
@@ -15,8 +15,8 @@ load(RoleName) when is_binary(RoleName) ->
     case filelib:is_dir(RolesDir) of
         false ->
             logger:error(
-                "[load_agent_role] hecate-agents not available at ~s~n"
-                "  Run: git clone https://github.com/hecate-social/hecate-agents.git ~s",
+                "[load_agent_role] hecate-corpus not available at ~s~n"
+                "  Run: git clone https://github.com/hecate-social/hecate-corpus.git ~s",
                 [RolesDir, hecate_agents_repo:path()]
             ),
             {error, {hecate_agents_not_available, RolesDir}};

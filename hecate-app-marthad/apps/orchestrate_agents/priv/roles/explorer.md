@@ -8,7 +8,7 @@ context:
   - SOUL.md
   - PERSONALITY.md
   - philosophy/DDD.md
-  - philosophy/HECATE_VENTURE_LIFECYCLE.md
+  - philosophy/HECATE_DOMAIN_LIFECYCLE.md
   - philosophy/SCREAMING_ARCHITECTURE.md
   - philosophy/CARTWHEEL.md
   - roles/NOTATION.md
